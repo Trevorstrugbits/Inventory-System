@@ -46,6 +46,8 @@ model User {
   locationId String?
   location   Location? @relation(fields: [locationId], references: [id], onDelete: SetNull)
 
+  adminOfCompany Company? @relation("CompanyAdmin")
+
   createdJobs Job[] @relation("CreatedBy")
 
   @@index([companyId])
@@ -56,9 +58,14 @@ model User {
 model Company {
   id                   String   @id @default(uuid())
   name                 String   @unique
+  email                String   @unique
   approvedBySuperadmin Boolean  @default(false)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
+
+  companyAdminId  String? @unique
+  companyAdmin    User?   @relation("CompanyAdmin", fields: [companyAdminId], references: [id], onDelete: SetNull)
+
 
   users            User[]
   locations        Location[]
@@ -66,6 +73,9 @@ model Company {
   jobs             Job[]
   overageOverrides CompanyOverageOverride[]
   invites          Invite[]
+
+  @@index([companyAdminId])
+  @@index([email])
 }
 
 model Location {
