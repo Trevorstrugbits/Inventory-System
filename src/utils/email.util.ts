@@ -1,5 +1,5 @@
 import nodemailer from 'nodemailer';
-import { companyInviteEmailTemplate } from './email-templates/company-invite.template';
+import { companyInviteEmailTemplate } from './email-templates/company-invite.template.js';
 
 interface SendInviteEmailParams {
   to: string;
@@ -16,7 +16,6 @@ const createTransporter = () => {
   }
 
   return nodemailer.createTransport({
-
     service: 'gmail',
     auth: {
       user: emailUser,

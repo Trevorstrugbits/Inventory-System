@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import Joi from 'joi';
-import AuthService from '../../services/auth/auth.service';
+import AuthService from '../../services/auth/auth.service.js';
 
 class AuthController {
     private authService: AuthService;

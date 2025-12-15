@@ -1,6 +1,6 @@
 import { User, UserRole } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { env } from '../../config/env';
+import { env } from '../../config/env.js';
 
 /**
  * JWT Payload structure for tokens

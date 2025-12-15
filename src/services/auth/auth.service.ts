@@ -1,6 +1,6 @@
-import UsersService from '../user/users.service';
-import JwtService from '../jwt/jwt.service';
-import { comparePassword } from '../../utils/helpers';
+import UsersService from '../user/users.service.js';
+import JwtService from '../jwt/jwt.service.js';
+import { comparePassword } from '../../utils/helpers.js';
 
 interface LoginResponse {
     userId: string;

@@ -1,7 +1,7 @@
 import { UserRole } from '@prisma/client';
 import jwt from 'jsonwebtoken';
-import { sendInviteEmail } from '../../utils/email.util';
-import { prisma } from '../../db/db.service';
+import { sendInviteEmail } from '../../utils/email.util.js';
+import { prisma } from '../../db/db.service.js';
 
 interface CreateCompanyInviteInput {
   companyEmail: string;

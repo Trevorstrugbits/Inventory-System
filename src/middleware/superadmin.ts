@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
-import { AppError } from './error.middleware';
-import { UserRole } from '../types';
+import { AppError } from './error.middleware.js';
+import { UserRole } from '../types/index.js';
 
 /**
  * Middleware to ensure only superadmins can access certain routes

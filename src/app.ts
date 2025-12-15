@@ -1,8 +1,8 @@
 import express, { Application, Request, Response } from 'express';
-import { env } from './config/env';
-import logger from './config/logger';
-import { errorHandler, notFoundHandler } from './middleware/error.middleware';
-import routes from './routes';
+import { env } from './config/env.js';
+import logger from './config/logger.js';
+import { errorHandler, notFoundHandler } from './middleware/error.middleware.js';
+import routes from './routes/index.js';
 
 export const createApp = (): Application => {
     const app: Application = express();

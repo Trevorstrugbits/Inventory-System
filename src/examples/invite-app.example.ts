@@ -4,9 +4,10 @@
  */
 
 import express from 'express';
-import inviteRoutes from './routes/invites.routes';
-import { errorHandler, notFoundHandler } from './middleware/error.middleware';
+import inviteRoutes from '../routes/invites.routes.js';
+import { errorHandler, notFoundHandler } from '../middleware/error.middleware.js';
 import dotenv from 'dotenv';
+import { fileURLToPath } from 'url';
 
 // Load environment variables
 dotenv.config();
@@ -31,7 +32,7 @@ app.use(notFoundHandler);
 app.use(errorHandler);
 
 // Start server
-if (require.main === module) {
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
   app.listen(PORT, () => {
     console.log(`🚀 Server running on http://localhost:${PORT}`);
     console.log(`📧 Email configured: ${process.env.SMTP_USER ? 'Yes' : 'No'}`);
