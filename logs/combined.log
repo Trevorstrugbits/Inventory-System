@@ -118,3 +118,11 @@ SIGINT received. Starting graceful shutdown...
 2025-12-12 20:57:03 [info]: Health check: http://localhost:3000/health
 2025-12-12 20:57:09 [info]: POST /login 400 - 11ms
 2025-12-12 20:57:33 [info]: POST /api/v1/auth/login 400 - 137ms
+2025-12-15 14:35:26 [debug]: Logger initialized in development mode
+2025-12-15 14:35:28 [info]: Database connected successfully
+2025-12-15 14:35:28 [info]: Server is running on port 3000
+2025-12-15 14:35:28 [info]: Environment: development
+2025-12-15 14:35:28 [info]: API URL: http://localhost:3000/api
+2025-12-15 14:35:28 [info]: Health check: http://localhost:3000/health
+2025-12-15 14:35:40 [info]: 
+SIGINT received. Starting graceful shutdown...

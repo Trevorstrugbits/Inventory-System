@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
-import inviteService from '../../services/invites/invite.service';
+import inviteService from '../../services/invites/invite.service.js';
 import Joi from 'joi';
 
 class InviteController {

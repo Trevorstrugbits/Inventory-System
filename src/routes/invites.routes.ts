@@ -1,7 +1,7 @@
 import express from 'express';
-import inviteController from '../controllers/invites/invite.controller';
-import { authenticateToken } from '../middleware/jwtAuth';
-import { requireSuperAdmin } from '../middleware/superadmin';
+import inviteController from '../controllers/invites/invite.controller.js';
+import { authenticateToken } from '../middleware/jwtAuth.js';
+import { requireSuperAdmin } from '../middleware/superadmin.js';
 
 const inviteRoutes = express.Router();
 

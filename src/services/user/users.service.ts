@@ -1,4 +1,4 @@
-import db from '../../db/db.service';
+import db from '../../db/db.service.js';
 import { User } from '@prisma/client';
 
 class UsersService {

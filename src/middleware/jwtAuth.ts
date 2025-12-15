@@ -1,8 +1,8 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { env } from '../config/env';
-import { AppError } from './error.middleware';
-import { UserRole } from '../types';
+import { env } from '../config/env.js';
+import { AppError } from './error.middleware.js';
+import { UserRole } from '../types/index.js';
 
 /**
  * JWT Payload structure

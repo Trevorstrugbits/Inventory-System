@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
-import logger from '../config/logger';
+import logger from '../config/logger.js';
 
 class DatabaseService {
   private static instance: DatabaseService;

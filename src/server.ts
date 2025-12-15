@@ -1,7 +1,7 @@
-import { createApp } from './app';
-import { env } from './config/env';
-import logger from './config/logger';
-import db, { prisma } from './db/db.service';
+import { createApp } from './app.js';
+import { env } from './config/env.js';
+import logger from './config/logger.js';
+import db, { prisma } from './db/db.service.js';
 
 const startServer = async () => {
     try {
