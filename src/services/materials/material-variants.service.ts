@@ -138,6 +138,46 @@ class MaterialVariantService {
   }
 
   /**
+   * Update stock for a material variant in a specific location
+   */
+  async updateStock(
+    variantId: string,
+    companyId: string,
+    locationId: string,
+    quantity: number
+  ) {
+    // Verify variant exists
+    const variant = await this.getVariantById(variantId);
+    if (!variant) {
+      throw new Error('Material variant not found');
+    }
+
+    // Upsert stock record
+    return db.prisma.stock.upsert({
+      where: {
+        companyId_locationId_variantId: {
+          companyId,
+          locationId,
+          variantId,
+        },
+      },
+      update: {
+        inStock: quantity,
+      },
+      create: {
+        companyId,
+        locationId,
+        variantId,
+        inStock: quantity,
+        useQty: 0,
+      },
+      include: {
+        variant: true,
+      }
+    });
+  }
+
+  /**
    * Process CSV import
    */
   async importFromCsv(rows: CsvRow[], mode: 'create' | 'upsert' = 'create'): Promise<{ summary: ImportResult; errors: any[] }> {

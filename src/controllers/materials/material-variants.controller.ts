@@ -140,6 +140,51 @@ class MaterialVariantController {
     }
   };
 
+  /**
+   * Update stock for a variant
+   */
+  updateStock = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { id } = req.params;
+      const { inStock, locationId } = req.body;
+
+      if (!req.user || !req.user.companyId) {
+        throw new AppError('Authentication required', 401);
+      }
+
+      // Use provided locationId or fall back to user's location
+      const targetLocationId = locationId || req.user.locationId;
+
+      if (!targetLocationId) {
+        throw new AppError('Location ID is required to update stock', 400);
+      }
+
+      const schema = Joi.object({
+        inStock: Joi.number().min(0).required(),
+        locationId: Joi.string().optional()
+      });
+
+      const { error } = schema.validate({ inStock, locationId });
+      if (error) {
+        throw new AppError(`Validation error: ${error.details[0].message}`, 400);
+      }
+
+      const updatedStock = await materialVariantService.updateStock(
+        id,
+        req.user.companyId,
+        targetLocationId,
+        inStock
+      );
+
+      res.status(200).json({
+        success: true,
+        data: updatedStock,
+      });
+    } catch (error) {
+      next(error);
+    }
+  };
+
     /**
    * Import variants from CSV
    */
