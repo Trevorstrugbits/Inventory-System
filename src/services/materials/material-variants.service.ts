@@ -68,6 +68,23 @@ export class MaterialVariantService {
   }
 
   /**
+   * Get all material variants
+   */
+  async getAllMaterialVariants(includeInactive = false) {
+    const where: Prisma.MaterialVariantWhereInput = {
+      ...(!includeInactive && { isActive: true }),
+    };
+
+    return db.prisma.materialVariant.findMany({
+      where,
+      orderBy: { name: 'asc' },
+      include: {
+        material: true
+      }
+    });
+  }
+
+  /**
    * Create a new material variant
    */
   async createVariant(data: CreateMaterialVariantInput) {

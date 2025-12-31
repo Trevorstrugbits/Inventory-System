@@ -57,6 +57,9 @@ const usageForecastSchema = Joi.object({
 router.post('/:materialId/variants', authenticateToken, requireSuperAdmin, validate(createVariantSchema), materialVariantController.createVariant);
 router.get('/:materialId/variants', authenticateToken, materialVariantController.getVariants);
 
+// Get all variants
+router.get('/variants', authenticateToken, materialVariantController.getAllVariants);
+
 // Variant ID routes (now under /variants)
 router.get('/variants/:id', authenticateToken, materialVariantController.getVariantById);
 router.put('/variants/:id', authenticateToken, requireSuperAdmin, validate(updateVariantSchema), materialVariantController.updateVariant);
