@@ -32,6 +32,23 @@ class MaterialVariantController {
   };
 
   /**
+   * Get all variants
+   */
+  getAllVariants = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { includeInactive } = req.query;
+
+      const variants = await this.materialVariantService.getAllMaterialVariants(
+        includeInactive === 'true'
+      );
+
+      return res.status(200).json(ApiResponse.success(variants));
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  /**
    * Get a single variant by ID
    */
   getVariantById = async (req: Request, res: Response, next: NextFunction) => {
