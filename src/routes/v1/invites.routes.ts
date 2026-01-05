@@ -5,48 +5,70 @@ import { authenticateToken } from '../../middleware/jwtAuth.js';
 import { requireSuperAdmin } from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validation.middleware.js';
 
-const inviteRoutes = express.Router();
+const router = express.Router();
 
-const companyInviteSchema = Joi.object({
-  companyEmail: Joi.string().email().required(),
+// --- Validation Schemas ---
+
+const createCompanyInviteSchema = Joi.object({
+  companyName: Joi.string().required(),
+  email: Joi.string().email().required(),
 });
 
-const verifyTokenSchema = Joi.object({
+const acceptInviteSchema = Joi.object({
   token: Joi.string().required(),
+  companyName: Joi.string().required(),
+  companyEmail: Joi.string().email().required(),
+  country: Joi.string().required(),
+  city: Joi.string().required(),
+  postalCode: Joi.string().optional().allow(''),
+  street: Joi.string().optional().allow(''),
+  state: Joi.string().optional().allow(''),
+  firstName: Joi.string().required(),
+  lastName: Joi.string().required(),
+  adminEmail: Joi.string().email().required(),
+  adminPhone: Joi.string().optional().allow(''),
+  password: Joi.string().min(8).required(),
 });
 
-/**
- * Superadmin routes - require superadmin authentication
- */
 
-inviteRoutes.post(
-  '/company-invite',
+// --- Superadmin Routes ---
+
+router.post(
+  '/company-invite', // Changed from /company-invite
   authenticateToken,
   requireSuperAdmin,
-  validate(companyInviteSchema),
+  validate(createCompanyInviteSchema),
   inviteController.createCompanyInvite
 );
 
-inviteRoutes.get(
-  '/company-invites',
+router.get(
+  '/company', // To get pending invites
   authenticateToken,
   requireSuperAdmin,
   inviteController.getPendingInvites
 );
 
-inviteRoutes.delete(
-  '/company-invite/:inviteId',
+router.delete(
+  '/company/:inviteId', // To cancel an invite
   authenticateToken,
   requireSuperAdmin,
   inviteController.cancelInvite
 );
 
-/**
- * Public routes - no authentication required
- */
 
-// Verify an invite token (used by the company when they click the link)
-inviteRoutes.post('/invite/verify', validate(verifyTokenSchema), inviteController.verifyInviteToken);
+// --- Public Routes ---
 
-export default inviteRoutes;
+// Verify an invite token via a GET request with a URL parameter
+router.get(
+  '/verify/:token',
+  inviteController.verifyInviteToken
+);
 
+// Accept an invite and onboard the company/admin
+router.post(
+  '/accept',
+  validate(acceptInviteSchema),
+  inviteController.acceptCompanyInvite
+);
+
+export default router;

@@ -4,10 +4,13 @@ import { companyInviteEmailTemplate } from './email-templates/company-invite.tem
 interface SendInviteEmailParams {
   to: string;
   inviteLink: string;
+  companyName: string;
   expiresAt: Date;
+  expiresInHours: number;
 }
 
 const createTransporter = () => {
+  // ... (transporter creation logic remains the same)
   const emailUser = process.env.SMTP_USER;
   const emailPassword = process.env.SMTP_PASS;
 
@@ -25,15 +28,15 @@ const createTransporter = () => {
 };
 
 export const sendInviteEmail = async (params: SendInviteEmailParams): Promise<void> => {
-  const { to, inviteLink, expiresAt } = params;
+  const { to, inviteLink, companyName, expiresAt, expiresInHours } = params;
 
   const transporter = createTransporter();
 
   const mailOptions = {
     from: `"${process.env.APP_NAME || 'ResinWerks'}" <${process.env.SMTP_USER}>`,
     to,
-    subject: 'You\'re Invited to Join ResinWerks',
-    html: companyInviteEmailTemplate({ inviteLink, expiresAt }),
+    subject: `You're Invited to Join ${companyName} on ResinWerks`,
+    html: companyInviteEmailTemplate({ inviteLink, companyName, expiresAt, expiresInHours }),
   };
 
   try {

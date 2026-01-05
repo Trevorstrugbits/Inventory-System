@@ -10,70 +10,75 @@ class InviteController {
     this.inviteService = inviteService;
   }
 
-  /**
-   * POST /superadmin/company-invite
-   * Create a new company invite
-   */
   createCompanyInvite = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const result = await this.inviteService.createCompanyInvite({
-        companyEmail: req.body.companyEmail,
-      });
-
-      return res.status(201).json(ApiResponse.success(result, 'Company invite created and email sent successfully', 201));
+      const { companyName, email } = req.body;
+      if (!companyName || !email) {
+        throw new AppError('companyName and email are required', 400);
+      }
+      const result = await this.inviteService.createCompanyInvite({ companyName, email });
+      return res.status(201).json(ApiResponse.success(result, 'Company invitation sent successfully'));
     } catch (error) {
       next(error);
     }
-  }
+  };
 
-  /**
-   * GET /superadmin/company-invites
-   * Get all pending company invites
-   */
   getPendingInvites = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const invites = await this.inviteService.getPendingCompanyInvites();
-
-      return res.status(200).json(ApiResponse.success(invites, 'Pending invites retrieved', 200));
+      return res.status(200).json(ApiResponse.success(invites, 'Pending invites retrieved'));
     } catch (error) {
       next(error);
     }
-  }
+  };
 
-  /**
-   * POST /invite/verify
-   * Verify an invite token (public endpoint)
-   */
   verifyInviteToken = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const inviteData = await this.inviteService.verifyInviteToken(req.body.token);
-
+      const { token } = req.params;
+      if (!token) {
+        throw new AppError('Invite token is required', 400);
+      }
+      const inviteData = await this.inviteService.verifyInviteToken(token);
       return res.status(200).json(ApiResponse.success(inviteData, 'Token is valid'));
     } catch (error) {
       next(error);
     }
-  }
+  };
 
-  /**
-   * DELETE /superadmin/company-invite/:inviteId
-   * Cancel a pending invite
-   */
+  acceptCompanyInvite = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      // Basic validation
+      const requiredFields = [
+        'token', 'companyName', 'companyEmail', 'country', 'city',
+        'firstName', 'lastName', 'adminEmail', 'password'
+      ];
+      for (const field of requiredFields) {
+        if (!req.body[field]) {
+          throw new AppError(`${field} is required`, 400);
+        }
+      }
+
+      const result = await this.inviteService.acceptCompanyInvite(req.body);
+
+      // Note: The service returns tokens, so you might want to set cookies here
+      return res.status(201).json(ApiResponse.success(result, 'User registered and company created successfully'));
+    } catch (error) {
+      next(error);
+    }
+  };
+
   cancelInvite = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { inviteId } = req.params;
-
       if (!inviteId) {
         throw new AppError('Invite ID is required', 400);
       }
-
       const result = await this.inviteService.cancelInvite(inviteId);
-
       return res.status(200).json(ApiResponse.success(null, result.message));
     } catch (error) {
       next(error);
     }
-  }
+  };
 }
 
 export default new InviteController();
-

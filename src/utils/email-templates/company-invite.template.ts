@@ -1,27 +1,39 @@
 interface CompanyInviteEmailParams {
   inviteLink: string;
+  companyName: string;
   expiresAt: Date;
+  expiresInHours: number;
 }
 
 export const companyInviteEmailTemplate = (params: CompanyInviteEmailParams): string => {
-  const { inviteLink, expiresAt } = params;
+  const { inviteLink, companyName, expiresAt, expiresInHours } = params;
 
-  const expirationDate = expiresAt.toLocaleDateString('en-US', {
-    weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-
+  let expirationDate: string;
+  try {
+    // Defensively check if expiresAt is a valid date
+    if (expiresAt && !isNaN(new Date(expiresAt).getTime())) {
+      expirationDate = new Date(expiresAt).toLocaleDateString('en-US', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+      });
+    } else {
+      throw new Error('Invalid date');
+    }
+  } catch (error) {
+    expirationDate = `in ${expiresInHours} hours`;
+  }
+  
   return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Company Invitation - ResinWerks</title>
+      <title>Invitation to Join ${companyName} on ResinWerks</title>
       <style>
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -100,14 +112,14 @@ export const companyInviteEmailTemplate = (params: CompanyInviteEmailParams): st
           <div class="logo">🏗️ ResinWerks</div>
         </div>
 
-        <h1>You're Invited to Join ResinWerks!</h1>
+        <h1>You're Invited to Join ${companyName} on ResinWerks!</h1>
 
         <p>Hello,</p>
 
         <p>
-          You've been invited to join <strong>ResinWerks</strong> as a company administrator. 
-          ResinWerks is a comprehensive inventory and job management system designed specifically 
-          for resin flooring businesses.
+          You've been invited to join <strong>${companyName}</strong> on the ResinWerks platform 
+          as a company administrator. ResinWerks is a comprehensive inventory and job management 
+          system designed specifically for resin flooring businesses.
         </p>
 
         <p>
@@ -115,7 +127,7 @@ export const companyInviteEmailTemplate = (params: CompanyInviteEmailParams): st
         </p>
 
         <div style="text-align: center;">
-          <a href="${inviteLink}" class="cta-button">Accept Invitation</a>
+          <a href="${inviteLink}" class="cta-button">Accept Invitation & Onboard</a>
         </div>
 
         <div class="info-box">
@@ -157,3 +169,4 @@ export const companyInviteEmailTemplate = (params: CompanyInviteEmailParams): st
     </html>
   `;
 };
+

@@ -86,6 +86,11 @@ model Location {
   id                   String   @id @default(uuid())
   companyId            String
   name                 String
+  street               String?
+  city                 String?
+  state                String?
+  postalCode           String?
+  country              String?
   approvedBySuperadmin Boolean  @default(false)
   createdAt            DateTime @default(now())
   updatedAt            DateTime @updatedAt
@@ -138,6 +143,7 @@ model Material {
 
 model MaterialVariant {
   id             String   @id @default(uuid())
+  variantId      Int      @default(autoincrement()) @unique
   materialId     String
   name           String // e.g. "Red 528", "Blue High-Solid"
   color          String?
