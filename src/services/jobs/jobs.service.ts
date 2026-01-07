@@ -34,6 +34,13 @@ interface UpdateJobData {
   date?: string | Date;
   installDate?: string | Date;
   jobCost?: number;
+  jobMaterials?: {
+    variantId: number; // Integer ID
+    quantityUsed: number;
+    cost: number;
+    additionalQty?: number;
+    additionalCost?: number;
+  }[];
 }
 
 export class JobsService {
@@ -233,27 +240,75 @@ export class JobsService {
    * Restriction: Company Admin only (own company)
    */
   async updateJob(id: string, data: UpdateJobData, user: any) {
-    // 1. Fetch job to verify ownership
-    const job = await prisma.job.findUnique({ where: { id } });
-    if (!job) throw new Error('Job not found');
+    return prisma.$transaction(async (prisma) => {
+        // 1. Fetch job to verify ownership
+        const job = await prisma.job.findUnique({ where: { id } });
 
-    if (user.role !== UserRole.COMPANY) { 
-        throw new Error('Only company admins can update jobs.');
-    }
+        if (!job) {
+            throw new AppError('Job not found', 404);
+        }
+        if (user.role !== UserRole.COMPANY || job.companyId !== user.companyId) {
+            throw new AppError('Access denied.', 403);
+        }
 
-    if (job.companyId !== user.companyId) {
-        throw new Error('Access denied.');
-    }
-    
-    const updateData: any = {
-      ...data,
-      date: data.date ? new Date(data.date) : undefined,
-      installDate: data.installDate ? new Date(data.installDate) : undefined,
-    };
+        // 2. Update scalar fields of the job
+        const { jobMaterials, ...jobData } = data;
+        const scalarUpdateData: any = {
+            ...jobData,
+            date: jobData.date ? new Date(jobData.date) : undefined,
+            installDate: jobData.installDate ? new Date(jobData.installDate) : undefined,
+        };
+        await prisma.job.update({
+            where: { id },
+            data: scalarUpdateData,
+        });
 
-    return prisma.job.update({
-      where: { id },
-      data: updateData
+        // 3. If jobMaterials are provided, replace them
+        if (jobMaterials) {
+            // A. Validate incoming variants and get their details
+            const incomingVariantIntIds = jobMaterials.map(jm => jm.variantId);
+            const materialVariants = await prisma.materialVariant.findMany({
+                where: { variantId: { in: incomingVariantIntIds } },
+                select: { id: true, variantId: true, materialId: true, material: { select: { unit: true } } }
+            });
+
+            if (materialVariants.length !== incomingVariantIntIds.length) {
+                throw new AppError('One or more provided material variants not found.', 404);
+            }
+            const variantIntIdToDetailsMap = new Map(materialVariants.map(v => [v.variantId, v]));
+
+            // B. Delete all existing materials for the job
+            await prisma.jobMaterial.deleteMany({
+                where: { jobId: id },
+            });
+
+            // C. Create the new set of materials
+            if (jobMaterials.length > 0) {
+                const newMaterialsData = jobMaterials.map(jm => {
+                    const variantDetails = variantIntIdToDetailsMap.get(jm.variantId);
+                    if (!variantDetails) throw new AppError('Variant details not found.', 500); // Should be caught by length check
+                    return {
+                        jobId: id,
+                        materialId: variantDetails.materialId,
+                        variantId: variantDetails.id, // The UUID for the foreign key
+                        quantityUsed: jm.quantityUsed,
+                        costAtTime: jm.cost,
+                        additionalQty: jm.additionalQty || 0,
+                        additionalCost: jm.additionalCost || 0,
+                        unit: variantDetails.material.unit,
+                    };
+                });
+                await prisma.jobMaterial.createMany({
+                    data: newMaterialsData,
+                });
+            }
+        }
+
+        // 4. Return the fully updated job with the new materials
+        return prisma.job.findUnique({
+            where: { id },
+            include: { jobMaterials: true }
+        });
     });
   }
 

@@ -37,6 +37,15 @@ const updateJobSchema = Joi.object({
   date: Joi.date().iso().optional(),
   installDate: Joi.date().iso().optional(),
   jobCost: Joi.number().optional(),
+  // To update materials, the entire new list must be provided.
+  // The backend will replace the old list with this new one.
+  jobMaterials: Joi.array().items(Joi.object({
+    variantId: Joi.number().integer().positive().required(), // The integer ID for the material variant
+    quantityUsed: Joi.number().required(),
+    cost: Joi.number().required(),
+    additionalQty: Joi.number().optional().default(0),
+    additionalCost: Joi.number().optional().default(0),
+  })).optional(),
 });
 
 const updateStatusSchema = Joi.object({

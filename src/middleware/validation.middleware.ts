@@ -23,7 +23,15 @@ export const validate = (schema: Schema, source: 'body' | 'query' | 'params' = '
     }
 
     // Replace the request data with the validated/stripped value
-    req[source] = value;
+    // For 'query', we must modify the object in-place as it's getter-only.
+    if (source === 'query') {
+      // Clear existing query params and add the validated ones
+      Object.keys(req.query).forEach(key => delete (req.query as any)[key]);
+      Object.assign(req.query, value);
+    } else {
+      req[source] = value;
+    }
+
     next();
   };
 };
