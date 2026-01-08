@@ -19,10 +19,12 @@ class MaterialVariantController {
     try {
       const { materialId } = req.params;
       const { includeInactive } = req.query;
+      const user = (req as any).user;
 
       const variants = await this.materialVariantService.getMaterialVariants(
         materialId,
-        includeInactive === 'true'
+        includeInactive === 'true',
+        user
       );
 
       return res.status(200).json(ApiResponse.success(variants));
@@ -45,7 +47,7 @@ class MaterialVariantController {
         types: type as string[] | undefined,
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10
-      });
+      }, (req as any).user);
 
       return res.status(200).json(ApiResponse.paginated(result.variants, result.meta));
     } catch (error) {
@@ -59,7 +61,8 @@ class MaterialVariantController {
   getVariantById = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      const variant = await this.materialVariantService.getVariantById(id);
+      const user = (req as any).user;
+      const variant = await this.materialVariantService.getVariantById(id, user);
 
       if (!variant) {
         throw new AppError('Material variant not found', 404);
@@ -76,12 +79,20 @@ class MaterialVariantController {
    */
   createVariant = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { materialId } = req.params;
+      const { materialId: paramMaterialId } = req.params;
+      const { materialId: bodyMaterialId } = req.body;
+      const user = (req as any).user;
+
+      const materialId = paramMaterialId || bodyMaterialId;
+
+      if (!materialId) {
+        throw new AppError('Material ID is required', 400);
+      }
 
       const variant = await this.materialVariantService.createVariant({
         materialId,
         ...req.body,
-      });
+      }, user);
 
       return res.status(201).json(ApiResponse.success(variant, 'Material variant created successfully', 201));
     } catch (error) {
@@ -95,8 +106,9 @@ class MaterialVariantController {
   updateVariant = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
+      const user = (req as any).user;
 
-      const variant = await this.materialVariantService.updateVariant(id, req.body);
+      const variant = await this.materialVariantService.updateVariant(id, req.body, user);
 
       return res.status(200).json(ApiResponse.success(variant, 'Material variant updated successfully'));
     } catch (error) {

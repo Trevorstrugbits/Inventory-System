@@ -156,7 +156,16 @@ export class JobsService {
         company: { select: { name: true } },
         location: { select: { name: true } },
         createdBy: { select: { firstName: true, lastName: true, email: true } },
-        jobMaterials: true
+        jobMaterials: {
+          include: {
+            variant: {
+              select: {
+                name: true,
+                variantId: true, // The integer ID
+              }
+            }
+          }
+        }
       }
     });
 

@@ -1,4 +1,5 @@
-import { Prisma } from '@prisma/client';
+import { Prisma, UserRole } from '@prisma/client';
+import { JwtPayload } from '../../middleware/jwtAuth.js';
 import db from '../../db/db.service.js';
 
 interface CreateMaterialVariantInput {
@@ -43,40 +44,88 @@ export class MaterialVariantService {
   /**
    * Get all variants for a material
    */
-  async getMaterialVariants(materialId: string, includeInactive = false) {
+  async getMaterialVariants(materialId: string, includeInactive = false, user: JwtPayload) {
     const where: Prisma.MaterialVariantWhereInput = {
       materialId,
       ...(!includeInactive && { isActive: true }),
     };
 
-    return db.prisma.materialVariant.findMany({
+    const variants = await db.prisma.materialVariant.findMany({
       where,
       orderBy: { name: 'asc' },
+      include: {
+        material: true, // Ensure material is included for the helper
+      },
     });
+
+    return this._applyOverageRates(variants, user);
   }
 
   /**
    * Get a single variant by ID
    */
-  async getVariantById(id: string) {
-    return db.prisma.materialVariant.findUnique({
+  async getVariantById(id: string, user: JwtPayload) {
+    const variant = await db.prisma.materialVariant.findUnique({
       where: { id },
       include: {
         material: true,
       },
+    });
+
+    if (!variant) {
+      return null;
+    }
+
+    // Apply override logic by calling the helper with a single-item array
+    const [variantWithCorrectOverage] = await this._applyOverageRates([variant], user);
+
+    return variantWithCorrectOverage;
+  }
+
+  private async _applyOverageRates(
+    variants: (Prisma.MaterialVariantGetPayload<{ include: { material: true } }>)[],
+    user: JwtPayload,
+  ) {
+    if (user.role !== UserRole.COMPANY || !user.companyId) {
+      return variants; // Return original variants if not a company user
+    }
+
+    const overrides = await db.prisma.companyOverageOverride.findMany({
+      where: {
+        companyId: user.companyId,
+        variantId: { in: variants.map(v => v.id) }
+      },
+      select: { variantId: true, overageRate: true }
+    });
+
+    if (overrides.length === 0) {
+        return variants; // No overrides for this set of variants, return original
+    }
+    
+    const overageMap = new Map(overrides.map(o => [o.variantId, o.overageRate]));
+
+    return variants.map(variant => {
+        const overrideRate = overageMap.get(variant.id);
+        // Create a new object to avoid modifying the original object from cache
+        return overrideRate !== undefined
+            ? { ...variant, overageRate: overrideRate }
+            : variant;
     });
   }
 
   /**
    * Get all material variants
    */
-  async getAllMaterialVariants(params: {
-    page?: number;
-    limit?: number;
-    includeInactive?: boolean;
-    search?: string;
-    types?: string | string[];
-  }) {
+  async getAllMaterialVariants(
+    params: {
+      page?: number;
+      limit?: number;
+      includeInactive?: boolean;
+      search?: string;
+      types?: string | string[];
+    },
+    user: JwtPayload,
+  ) {
     const {
       page = 1,
       limit = 10,
@@ -112,7 +161,8 @@ export class MaterialVariantService {
         }
     }
 
-    const [total, variants] = await db.prisma.$transaction([
+    // 1. Get total count and paginated variants
+    const [total, variantsWithMaterial] = await db.prisma.$transaction([
       db.prisma.materialVariant.count({ where }),
       db.prisma.materialVariant.findMany({
         where,
@@ -124,9 +174,24 @@ export class MaterialVariantService {
         },
       }),
     ]);
+    
+    // 2. Apply overage rate logic using the helper
+    const variantsWithCorrectOverage = await this._applyOverageRates(variantsWithMaterial, user);
+
+    // 3. Format the final output
+    const formattedVariants = variantsWithCorrectOverage.map(variant => ({
+        'product type': variant.material.name,
+        name: variant.name,
+        color: variant.color,
+        pricePerGallon: Number(variant.pricePerGallon),
+        coverageArea: Number(variant.coverageArea),
+        overageRate: Number(variant.overageRate),
+        id: variant.id,
+        variantId: variant.variantId
+    }));
 
     return {
-      variants,
+      variants: formattedVariants,
       meta: {
         total,
         page,
@@ -139,7 +204,7 @@ export class MaterialVariantService {
   /**
    * Create a new material variant
    */
-  async createVariant(data: CreateMaterialVariantInput) {
+  async createVariant(data: CreateMaterialVariantInput, user: JwtPayload) {
     // Check for uniqueness
     const existing = await db.prisma.materialVariant.findFirst({
       where: {
@@ -155,19 +220,25 @@ export class MaterialVariantService {
       throw new Error(`Variant with name "${data.name}" already exists for this material`);
     }
 
-    return db.prisma.materialVariant.create({
+    const newVariant = await db.prisma.materialVariant.create({
       data: {
         ...data,
       },
+      include: {
+        material: true,
+      }
     });
+
+    const [variantWithCorrectOverage] = await this._applyOverageRates([newVariant], user);
+    return variantWithCorrectOverage;
   }
 
   /**
    * Update a material variant
    */
-  async updateVariant(id: string, data: UpdateMaterialVariantInput) {
-    // Check existence
-    const variant = await this.getVariantById(id);
+  async updateVariant(id: string, data: UpdateMaterialVariantInput, user: JwtPayload) {
+    // Check existence using the refactored getVariantById to respect user context
+    const variant = await this.getVariantById(id, user);
     if (!variant) {
       throw new Error('Material variant not found');
     }
@@ -190,10 +261,16 @@ export class MaterialVariantService {
       }
     }
 
-    return db.prisma.materialVariant.update({
+    const updatedVariant = await db.prisma.materialVariant.update({
       where: { id },
       data,
+      include: {
+        material: true
+      }
     });
+
+    const [variantWithCorrectOverage] = await this._applyOverageRates([updatedVariant], user);
+    return variantWithCorrectOverage;
   }
 
   /**

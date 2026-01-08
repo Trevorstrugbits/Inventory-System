@@ -60,6 +60,17 @@ router.get('/:materialId/variants', authenticateToken, materialVariantController
 // Get all variants
 router.get('/variants', authenticateToken, materialVariantController.getAllVariants);
 
+// Create variant (generic, materialId in body)
+router.post('/variants', authenticateToken, requireSuperAdmin, validate(Joi.object({
+    materialId: Joi.string().required(),
+    name: Joi.string().required(),
+    color: Joi.string().optional().allow(null, ''),
+    type: Joi.string().optional().allow(null, ''),
+    pricePerGallon: Joi.number().min(0).required(),
+    coverageArea: Joi.number().min(0).required(),
+    overageRate: Joi.number().min(0).required(),
+})), materialVariantController.createVariant);
+
 // Variant ID routes (now under /variants)
 router.get('/variants/:id', authenticateToken, materialVariantController.getVariantById);
 router.put('/variants/:id', authenticateToken, requireSuperAdmin, validate(updateVariantSchema), materialVariantController.updateVariant);

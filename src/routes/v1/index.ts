@@ -8,6 +8,7 @@ import jobsRoutes from "./jobs.routes.js";
 import usersRoutes from "./users.routes.js";
 import stocksRoutes from "./stocks.routes.js";
 import inviteRoutes from "./invites.routes.js";
+import overridesRoutes from "./overrides.routes.js";
 
 const v1Routes = express.Router();
 
@@ -21,5 +22,6 @@ v1Routes.use("/stocks", stocksRoutes);
 v1Routes.use("/invites", inviteRoutes);
 v1Routes.use("/materials", materialsRoutes);
 v1Routes.use("/material-variants", materialVariantsRoutes);
+v1Routes.use("/overrides", overridesRoutes);
 
 export default v1Routes;
