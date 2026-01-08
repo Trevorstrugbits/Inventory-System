@@ -57,11 +57,11 @@ class UsersService {
         const skip = (page - 1) * limit;
 
         // Get total count
-        const total = await db.count('user', { companyId, role: isEmployeeOnly ? 'EMPLOYEE' : 'ADMIN' });
+        const total = await db.count('user', { companyId, role: isEmployeeOnly ? 'EMPLOYEE' : 'COMPANY' });
 
         // Get paginated data
         const data = await db.findMany<User>('user', {
-            where: { companyId, role: isEmployeeOnly ? 'EMPLOYEE' : 'ADMIN' },
+            where: { companyId, role: isEmployeeOnly ? 'EMPLOYEE' : 'COMPANY' },
             select,
             skip,
             take: limit,

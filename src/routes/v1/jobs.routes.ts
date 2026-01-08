@@ -19,7 +19,7 @@ const createJobSchema = Joi.object({
   installDate: Joi.date().iso().required(),
   jobCost: Joi.number().optional(),
   jobMaterials: Joi.array().items(Joi.object({
-    variantId: Joi.string().required(),
+    variantId: Joi.required(),
     quantityUsed: Joi.number().required(),
     cost: Joi.number().required(),
     additionalQty: Joi.number().required(),

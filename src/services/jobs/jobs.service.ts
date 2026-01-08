@@ -35,7 +35,7 @@ interface UpdateJobData {
   installDate?: string | Date;
   jobCost?: number;
   jobMaterials?: {
-    variantId: number; // Integer ID
+    variantId: number | string; // Integer ID
     quantityUsed: number;
     cost: number;
     additionalQty?: number;
@@ -65,10 +65,10 @@ export class JobsService {
     }
 
     // 1. Validate Material Variants
-    const variantIds = data.jobMaterials.map(jm => jm.variantId);
+    const variantIds = data.jobMaterials.map(jm => Number(jm.variantId));
     const materialVariants = await prisma.materialVariant.findMany({
       where: {
-        id: { in: variantIds },
+        variantId: { in: variantIds },
       },
       select: {
         id: true,
@@ -94,11 +94,11 @@ export class JobsService {
     const variantIdToMaterialDetailsMap = new Map<string, typeof materialVariants[0]>();
 
     for (const mv of materialVariants) {
-      if (mv.type in foundTypes) {
+      if (mv.type && mv.type in foundTypes) {
         foundTypes[mv.type as 'base coat' | 'top coat' | 'broadcast']++;
         variantIdToMaterialDetailsMap.set(mv.id, mv);
       } else {
-        throw new AppError(`Invalid material variant type: ${mv.type}`, 400);
+        throw new AppError(`Invalid or missing material variant type: ${mv.type}`, 400);
       }
     }
 
@@ -275,7 +275,7 @@ export class JobsService {
         // 3. If jobMaterials are provided, replace them
         if (jobMaterials) {
             // A. Validate incoming variants and get their details
-            const incomingVariantIntIds = jobMaterials.map(jm => jm.variantId);
+            const incomingVariantIntIds = jobMaterials.map(jm => Number(jm.variantId));
             const materialVariants = await prisma.materialVariant.findMany({
                 where: { variantId: { in: incomingVariantIntIds } },
                 select: { id: true, variantId: true, materialId: true, material: { select: { unit: true } } }
@@ -294,7 +294,7 @@ export class JobsService {
             // C. Create the new set of materials
             if (jobMaterials.length > 0) {
                 const newMaterialsData = jobMaterials.map(jm => {
-                    const variantDetails = variantIntIdToDetailsMap.get(jm.variantId);
+                    const variantDetails = variantIntIdToDetailsMap.get(Number(jm.variantId));
                     if (!variantDetails) throw new AppError('Variant details not found.', 500); // Should be caught by length check
                     return {
                         jobId: id,
