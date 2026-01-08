@@ -72,6 +72,7 @@ export class JobsService {
       },
       select: {
         id: true,
+        variantId: true,
         type: true,
         materialId: true,
         material: { // Include the related Material to get the unit
@@ -91,12 +92,12 @@ export class JobsService {
       'top coat': 0,
       'broadcast': 0,
     };
-    const variantIdToMaterialDetailsMap = new Map<string, typeof materialVariants[0]>();
+    const variantIdToMaterialDetailsMap = new Map<number, typeof materialVariants[0]>();
 
     for (const mv of materialVariants) {
       if (mv.type && mv.type in foundTypes) {
         foundTypes[mv.type as 'base coat' | 'top coat' | 'broadcast']++;
-        variantIdToMaterialDetailsMap.set(mv.id, mv);
+        variantIdToMaterialDetailsMap.set(mv.variantId, mv);
       } else {
         throw new AppError(`Invalid or missing material variant type: ${mv.type}`, 400);
       }
@@ -126,16 +127,21 @@ export class JobsService {
         },
       });
 
-      const jobMaterialsToCreate = data.jobMaterials.map(jm => ({
-        jobId: job.id,
-        materialId: variantIdToMaterialDetailsMap.get(jm.variantId)!.materialId,
-        variantId: jm.variantId,
-        quantityUsed: jm.quantityUsed,
-        costAtTime: jm.cost,
-        additionalQty: jm.additionalQty,
-        additionalCost: jm.additionalCost,
-        unit: variantIdToMaterialDetailsMap.get(jm.variantId)!.material.unit,
-      }));
+      const jobMaterialsToCreate = data.jobMaterials.map(jm => {
+        const variantDetails = variantIdToMaterialDetailsMap.get(Number(jm.variantId));
+        if (!variantDetails) throw new AppError('Variant details not found', 500);
+
+        return {
+          jobId: job.id,
+          materialId: variantDetails.materialId,
+          variantId: variantDetails.id, // Use UUID from lookup
+          quantityUsed: jm.quantityUsed,
+          costAtTime: jm.cost,
+          additionalQty: jm.additionalQty,
+          additionalCost: jm.additionalCost,
+          unit: variantDetails.material.unit,
+        };
+      });
 
       await prisma.jobMaterial.createMany({
         data: jobMaterialsToCreate,

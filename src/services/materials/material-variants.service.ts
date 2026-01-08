@@ -121,6 +121,7 @@ export class MaterialVariantService {
       page?: number;
       limit?: number;
       includeInactive?: boolean;
+      status?: string;
       search?: string;
       types?: string | string[];
     },
@@ -130,6 +131,7 @@ export class MaterialVariantService {
       page = 1,
       limit = 10,
       includeInactive = false,
+      status,
       search,
       types
     } = params;
@@ -137,8 +139,22 @@ export class MaterialVariantService {
 
     const where: Prisma.MaterialVariantWhereInput = {};
 
-    if (!includeInactive) {
-      where.isActive = true;
+    // Filter Logic
+    if (user.role !== UserRole.SUPERADMIN) {
+        // Enforce active only for non-superadmins
+        where.isActive = true;
+    } else {
+        // Superadmin logic
+        if (status === 'active') {
+            where.isActive = true;
+        } else if (status === 'inactive') {
+            where.isActive = false;
+        } else if (!includeInactive) {
+            // Default behavior if no status and no includeInactive: distinct active only? 
+            // Or usually we default to active unless asked otherwise.
+            where.isActive = true;
+        }
+        // If includeInactive is true, we don't set isActive filter, returning all.
     }
 
     if (search) {
