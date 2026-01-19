@@ -193,7 +193,7 @@ export class JobsService {
    * List jobs
    * Restriction: Superadmin (all), Company/Employee (own company only)
    */
-  async listJobs(params: { page?: number; limit?: number; companyId?: string; status?: JobStatus; search?: string }, user: any) {
+  async listJobs(params: { page?: number; limit?: number; companyId?: string; status?: JobStatus; search?: string, detailed?: boolean }, user: any) {
     const page = params.page || 1;
     const limit = params.limit || 10;
     const skip = (page - 1) * limit;
@@ -224,6 +224,25 @@ export class JobsService {
         { clientAddress: { contains: params.search, mode: 'insensitive' } },
       ];
     }
+    
+    const includeClause = params.detailed ? {
+        company: { select: { name: true } },
+        location: { select: { name: true } },
+        createdBy: { select: { firstName: true, lastName: true, email: true } },
+        jobMaterials: {
+          include: {
+            variant: {
+              select: {
+                name: true,
+                variantId: true,
+              }
+            }
+          }
+        }
+    } : {
+        location: { select: { name: true } },
+        createdBy: { select: { firstName: true, lastName: true } }
+    };
 
     const [total, jobs] = await Promise.all([
       prisma.job.count({ where }),
@@ -232,10 +251,7 @@ export class JobsService {
         skip,
         take: limit,
         orderBy: { createdAt: 'desc' },
-        include: {
-          location: { select: { name: true } },
-          createdBy: { select: { firstName: true, lastName: true } }
-        }
+        include: includeClause
       })
     ]);
 

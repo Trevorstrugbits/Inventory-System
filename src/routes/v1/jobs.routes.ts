@@ -52,11 +52,20 @@ const updateStatusSchema = Joi.object({
   status: Joi.string().valid(...Object.values(JobStatus)).required(),
 });
 
+const listJobsSchema = Joi.object({
+    page: Joi.number().integer().min(1),
+    limit: Joi.number().integer().min(1),
+    companyId: Joi.string().uuid(),
+    status: Joi.string().valid(...Object.values(JobStatus)),
+    search: Joi.string(),
+    detailed: Joi.boolean(),
+});
+
 // Create Job - Company Admin only
 router.post('/', authenticateToken, requireCompanyAdmin, validate(createJobSchema), jobsController.createJob);
 
 // List Jobs - Authenticated users (Filter logic in service)
-router.get('/', authenticateToken, jobsController.listJobs);
+router.get('/', authenticateToken, validate(listJobsSchema, 'query'), jobsController.listJobs);
 
 // --- Archived Jobs ---
 // List Archived Jobs

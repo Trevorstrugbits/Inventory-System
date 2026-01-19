@@ -9,6 +9,7 @@ import usersRoutes from "./users.routes.js";
 import stocksRoutes from "./stocks.routes.js";
 import inviteRoutes from "./invites.routes.js";
 import overridesRoutes from "./overrides.routes.js";
+import quantityOverridesRoutes from "./quantity-overrides.routes.js";
 
 const v1Routes = express.Router();
 
@@ -23,5 +24,6 @@ v1Routes.use("/invites", inviteRoutes);
 v1Routes.use("/materials", materialsRoutes);
 v1Routes.use("/material-variants", materialVariantsRoutes);
 v1Routes.use("/overrides", overridesRoutes);
+v1Routes.use("/quantity-overrides", quantityOverridesRoutes);
 
 export default v1Routes;

@@ -58,7 +58,8 @@ export class MaterialVariantService {
       },
     });
 
-    return this._applyOverageRates(variants, user);
+    const variantsWithOverage = await this._applyOverageRates(variants, user);
+    return this._applyQuantityOverrides(variantsWithOverage, user);
   }
 
   /**
@@ -78,8 +79,40 @@ export class MaterialVariantService {
 
     // Apply override logic by calling the helper with a single-item array
     const [variantWithCorrectOverage] = await this._applyOverageRates([variant], user);
+    const [variantWithCorrectQuantity] = await this._applyQuantityOverrides([variantWithCorrectOverage], user);
 
-    return variantWithCorrectOverage;
+    return variantWithCorrectQuantity;
+  }
+
+  private async _applyQuantityOverrides(
+    variants: any[],
+    user: JwtPayload,
+  ) {
+    if (user.role !== UserRole.COMPANY || !user.companyId) {
+      return variants; // Return original variants if not a company user
+    }
+
+    const overrides = await db.prisma.companyQuantityOverride.findMany({
+      where: {
+        companyId: user.companyId,
+        variantId: { in: variants.map(v => v.id) }
+      },
+      select: { variantId: true, quantity: true }
+    });
+
+    if (overrides.length === 0) {
+        return variants; // No overrides for this set of variants, return original
+    }
+    
+    const quantityMap = new Map(overrides.map(o => [o.variantId, o.quantity]));
+
+    return variants.map(variant => {
+        const overrideQuantity = quantityMap.get(variant.id);
+        // Create a new object to avoid modifying the original object from cache
+        return overrideQuantity !== undefined
+            ? { ...variant, companyQuantity: overrideQuantity }
+            : variant;
+    });
   }
 
   private async _applyOverageRates(
@@ -108,7 +141,7 @@ export class MaterialVariantService {
         const overrideRate = overageMap.get(variant.id);
         // Create a new object to avoid modifying the original object from cache
         return overrideRate !== undefined
-            ? { ...variant, overageRate: overrideRate }
+            ? { ...variant, companyOverageRate: overrideRate }
             : variant;
     });
   }
@@ -193,17 +226,22 @@ export class MaterialVariantService {
     
     // 2. Apply overage rate logic using the helper
     const variantsWithCorrectOverage = await this._applyOverageRates(variantsWithMaterial, user);
+    const variantsWithCorrectQuantity = await this._applyQuantityOverrides(variantsWithCorrectOverage, user);
 
     // 3. Format the final output
-    const formattedVariants = variantsWithCorrectOverage.map(variant => ({
+    const formattedVariants = variantsWithCorrectQuantity.map((variant: any) => ({
         'product type': variant.material.name,
         name: variant.name,
         color: variant.color,
         pricePerGallon: Number(variant.pricePerGallon),
         coverageArea: Number(variant.coverageArea),
         overageRate: Number(variant.overageRate),
+        quantity: Number(variant.quantity),
+        companyOverageRate: variant.companyOverageRate !== undefined ? Number(variant.companyOverageRate) : undefined,
+        companyQuantity: variant.companyQuantity !== undefined ? Number(variant.companyQuantity) : undefined,
         id: variant.id,
-        variantId: variant.variantId
+        variantId: variant.variantId,
+        isActive: variant.isActive
     }));
 
     return {
@@ -246,7 +284,8 @@ export class MaterialVariantService {
     });
 
     const [variantWithCorrectOverage] = await this._applyOverageRates([newVariant], user);
-    return variantWithCorrectOverage;
+    const [variantWithCorrectQuantity] = await this._applyQuantityOverrides([variantWithCorrectOverage], user);
+    return variantWithCorrectQuantity;
   }
 
   /**
@@ -286,7 +325,8 @@ export class MaterialVariantService {
     });
 
     const [variantWithCorrectOverage] = await this._applyOverageRates([updatedVariant], user);
-    return variantWithCorrectOverage;
+    const [variantWithCorrectQuantity] = await this._applyQuantityOverrides([variantWithCorrectOverage], user);
+    return variantWithCorrectQuantity;
   }
 
   /**

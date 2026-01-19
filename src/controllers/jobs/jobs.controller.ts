@@ -52,7 +52,7 @@ class JobsController {
   listJobs = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
-      const { page, limit, companyId, status, search } = req.query;
+      const { page, limit, companyId, status, search, detailed } = req.query;
 
       const result = await this.jobsService.listJobs({
         page: page ? Number(page) : 1,
@@ -60,6 +60,7 @@ class JobsController {
         companyId: companyId as string,
         status: status as any,
         search: search as string,
+        detailed: detailed === 'true',
       }, user);
 
       return res.status(200).json(ApiResponse.paginated(result.jobs, result.meta));
