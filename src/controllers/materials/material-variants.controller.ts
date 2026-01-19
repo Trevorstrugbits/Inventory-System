@@ -38,11 +38,11 @@ class MaterialVariantController {
    */
   getAllVariants = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { includeInactive, type, page, limit, status } = req.query;
+      const { isActive, type, page, limit, status } = req.query;
       const search = req.query.search || req.query.q || req.query.query;
 
       const result = await this.materialVariantService.getAllMaterialVariants({
-        includeInactive: includeInactive === 'true',
+        includeInactive: isActive === 'true',
         status: status as string | undefined,
         search: search as string | undefined,
         types: type as string[] | undefined,
