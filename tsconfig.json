@@ -12,7 +12,8 @@
 
   "include": [
     "src/**/*.ts",
-    "prisma.config.ts" // Include prisma.config.ts
+    "prisma.config.ts",
+    "src/db/prisma/seed.ts"
   ],
   "exclude": [
     "node_modules"

@@ -34,6 +34,25 @@ class ProfileController {
             next(error);
         }
     }
+
+    /**
+     * Update current user's profile image
+     */
+    updateProfileImage = async (req: Request, res: Response, next: NextFunction) => {
+        try {
+            const user = (req as any).user;
+            const file = req.file;
+
+            if (!file) {
+                return res.status(400).json(ApiResponse.error('No file uploaded'));
+            }
+
+            const updatedUser = await this.profileService.updateProfileImage(user.userId, file);
+            return res.status(200).json(ApiResponse.success(updatedUser, 'Profile image updated successfully'));
+        } catch (error: any) {
+            next(error);
+        }
+    }
 }
 
 export default new ProfileController();

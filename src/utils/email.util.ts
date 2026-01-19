@@ -1,4 +1,49 @@
-import nodemailer from 'nodemailer';
+import {
+  SESClient,
+  SendEmailCommand,
+  SendEmailCommandInput,
+} from '@aws-sdk/client-ses';
+import { env } from '../config/env.js';
+
+const sesClient = new SESClient({
+  region: env.AWS_REGION,
+  credentials: {
+    accessKeyId: env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: env.AWS_SECRET_ACCESS_KEY,
+  },
+});
+
+const sendEmail = async (to: string, subject: string, html: string) => {
+  const params: SendEmailCommandInput = {
+    Source: env.SMTP_FROM,
+    Destination: {
+      ToAddresses: [to],
+    },
+    Message: {
+      Subject: {
+        Data: subject,
+      },
+      Body: {
+        Html: {
+          Data: html,
+        },
+      },
+    },
+  };
+
+  try {
+    const command = new SendEmailCommand(params);
+    await sesClient.send(command);
+    console.log(`Email sent successfully to ${to}`);
+  } catch (error) {
+    console.error(`Error sending email to ${to}:`, error);
+    throw new Error('Failed to send email.');
+  }
+};
+
+// All specific email functions will now use the generic sendEmail function.
+// The email templates will need to be adjusted to be simple functions returning HTML strings.
+
 import { companyInviteEmailTemplate } from './email-templates/company-invite.template.js';
 import { newUserCredentialsEmailTemplate } from './email-templates/new-user-credentials.template.js';
 import { forgotPasswordEmailTemplate } from './email-templates/forgot-password.template.js';
@@ -11,55 +56,11 @@ interface SendInviteEmailParams {
   expiresInHours: number;
 }
 
-const createTransporter = () => {
-  // ... (transporter creation logic remains the same)
-  const emailUser = process.env.SMTP_USER;
-  const emailPassword = process.env.SMTP_PASS;
-
-  if (!emailUser || !emailPassword) {
-    throw new Error('Email configuration missing. Please set SMTP_USER and SMTP_PASS in .env');
-  }
-
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: emailUser,
-      pass: emailPassword,
-    },
-  });
-};
-
 export const sendInviteEmail = async (params: SendInviteEmailParams): Promise<void> => {
   const { to, inviteLink, companyName, expiresAt, expiresInHours } = params;
-
-  const transporter = createTransporter();
-
-  const mailOptions = {
-    from: `"${process.env.APP_NAME || 'ResinWerks'}" <${process.env.SMTP_USER}>`,
-    to,
-    subject: `You're Invited to Join ${companyName} on ResinWerks`,
-    html: companyInviteEmailTemplate({ inviteLink, companyName, expiresAt, expiresInHours }),
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Email sent successfully:', info.messageId);
-  } catch (error) {
-    console.error('Error sending email:', error);
-    throw new Error('Failed to send invitation email');
-  }
-};
-
-export const testEmailConfig = async (): Promise<boolean> => {
-  try {
-    const transporter = createTransporter();
-    await transporter.verify();
-    console.log('Email configuration is valid');
-    return true;
-  } catch (error) {
-    console.error('Email configuration error:', error);
-    return false;
-  }
+  const subject = `You're Invited to Join ${companyName} on ResinWerks`;
+  const html = companyInviteEmailTemplate({ inviteLink, companyName, expiresAt, expiresInHours });
+  await sendEmail(to, subject, html);
 };
 
 interface SendNewUserCredentialsEmailParams {
@@ -72,22 +73,9 @@ interface SendNewUserCredentialsEmailParams {
 
 export const sendNewUserCredentialsEmail = async (params: SendNewUserCredentialsEmailParams): Promise<void> => {
   const { to, name, companyName, loginUrl, password } = params;
-
-  const transporter = createTransporter();
-
-  const mailOptions = {
-    from: `"${process.env.APP_NAME || 'ResinWerks'}" <${process.env.SMTP_USER}>`,
-    to,
-    subject: `Welcome to ${companyName} - Your Login Credentials`,
-    html: newUserCredentialsEmailTemplate({ name, companyName, loginUrl, email: to, password }),
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Credentials email sent successfully:', info.messageId);
-  } catch (error) {
-    console.error('Error sending credentials email:', error);
-  }
+  const subject = `Welcome to ${companyName} - Your Login Credentials`;
+  const html = newUserCredentialsEmailTemplate({ name, companyName, loginUrl, email: to, password });
+  await sendEmail(to, subject, html);
 };
 
 interface SendForgotPasswordEmailParams {
@@ -99,21 +87,7 @@ interface SendForgotPasswordEmailParams {
 
 export const sendForgotPasswordEmail = async (params: SendForgotPasswordEmailParams): Promise<void> => {
   const { to, name, resetLink, expiresInMinutes } = params;
-
-  const transporter = createTransporter();
-
-  const mailOptions = {
-    from: `"${process.env.APP_NAME || 'ResinWerks'}" <${process.env.SMTP_USER}>`,
-    to,
-    subject: 'Reset Your Password - ResinWerks',
-    html: forgotPasswordEmailTemplate({ name, resetLink, expiresInMinutes }),
-  };
-
-  try {
-    const info = await transporter.sendMail(mailOptions);
-    console.log('Password reset email sent successfully:', info.messageId);
-  } catch (error) {
-    console.error('Error sending password reset email:', error);
-    throw new Error('Failed to send password reset email. Please try again.');
-  }
+  const subject = 'Reset Your Password - ResinWerks';
+  const html = forgotPasswordEmailTemplate({ name, resetLink, expiresInMinutes });
+  await sendEmail(to, subject, html);
 };
