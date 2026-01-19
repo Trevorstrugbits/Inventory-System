@@ -259,21 +259,6 @@ export class MaterialVariantService {
    * Create a new material variant
    */
   async createVariant(data: CreateMaterialVariantInput, user: JwtPayload) {
-    // Check for uniqueness
-    const existing = await db.prisma.materialVariant.findFirst({
-      where: {
-        materialId: data.materialId,
-        name: {
-          equals: data.name,
-          mode: 'insensitive', // Case insensitive check
-        },
-      },
-    });
-
-    if (existing) {
-      throw new Error(`Variant with name "${data.name}" already exists for this material`);
-    }
-
     const newVariant = await db.prisma.materialVariant.create({
       data: {
         ...data,

@@ -160,7 +160,6 @@ model MaterialVariant {
   overageOverrides CompanyOverageOverride[]
   quantityOverrides CompanyQuantityOverride[]
 
-  @@unique([materialId, name, color])
   @@index([materialId])
 }
 
