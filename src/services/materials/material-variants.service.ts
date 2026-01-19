@@ -346,10 +346,11 @@ export class MaterialVariantService {
     variantId: string,
     companyId: string,
     locationId: string,
-    quantity: number
+    quantity: number,
+    user: JwtPayload
   ) {
     // Verify variant exists
-    const variant = await this.getVariantById(variantId);
+    const variant = await this.getVariantById(variantId, user);
     if (!variant) {
       throw new Error('Material variant not found');
     }
@@ -421,7 +422,7 @@ export class MaterialVariantService {
           lte: endDate,
         },
         status: {
-          in: ['PENDING', 'IN_PROGRESS'] // Only look at active/future jobs? Or all jobs? "going to use" implies future.
+          in: ['PENDING', 'ORDERED'] // Only look at active/future jobs? Or all jobs? "going to use" implies future.
         }
       },
       include: {

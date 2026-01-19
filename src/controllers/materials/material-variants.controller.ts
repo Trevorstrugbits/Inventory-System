@@ -22,7 +22,7 @@ class MaterialVariantController {
       const user = (req as any).user;
 
       const variants = await this.materialVariantService.getMaterialVariants(
-        materialId,
+        materialId as string,
         includeInactive === 'true',
         user
       );
@@ -63,7 +63,7 @@ class MaterialVariantController {
     try {
       const { id } = req.params;
       const user = (req as any).user;
-      const variant = await this.materialVariantService.getVariantById(id, user);
+      const variant = await this.materialVariantService.getVariantById(id as string, user);
 
       if (!variant) {
         throw new AppError('Material variant not found', 404);
@@ -109,7 +109,7 @@ class MaterialVariantController {
       const { id } = req.params;
       const user = (req as any).user;
 
-      const variant = await this.materialVariantService.updateVariant(id, req.body, user);
+      const variant = await this.materialVariantService.updateVariant(id as string, req.body, user);
 
       return res.status(200).json(ApiResponse.success(variant, 'Material variant updated successfully'));
     } catch (error) {
@@ -123,7 +123,7 @@ class MaterialVariantController {
   deleteVariant = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { id } = req.params;
-      await this.materialVariantService.deleteVariant(id);
+      await this.materialVariantService.deleteVariant(id as string);
 
       return res.status(200).json(ApiResponse.success(null, 'Material variant deactivated'));
     } catch (error) {
@@ -152,10 +152,11 @@ class MaterialVariantController {
       }
 
       const updatedStock = await this.materialVariantService.updateStock(
-        id,
+        id as string,
         user.companyId,
         targetLocationId,
-        inStock
+        inStock,
+        user
       );
 
       return res.status(200).json(ApiResponse.success(updatedStock, 'Stock updated successfully'));
@@ -185,7 +186,7 @@ class MaterialVariantController {
       }
 
       const stock = await this.materialVariantService.getStock(
-        id,
+        id as string,
         user.companyId,
         targetLocationId
       );

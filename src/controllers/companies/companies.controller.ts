@@ -38,7 +38,7 @@ class CompaniesController {
               throw new AppError('Access denied', 403);
           }
 
-          const company = await this.companiesService.getCompany(id);
+          const company = await this.companiesService.getCompany(id as string);
           if (!company) {
               throw new AppError('Company not found', 404);
           }
@@ -92,7 +92,7 @@ class CompaniesController {
                throw new AppError('Access denied', 403);
           }
 
-          const updated = await this.companiesService.updateCompany(id, { name, approvedBySuperadmin });
+          const updated = await this.companiesService.updateCompany(id as string, { name, approvedBySuperadmin });
           return res.status(200).json(ApiResponse.success(updated, 'Company updated successfully'));
       } catch (error: any) {
           next(error);
@@ -108,7 +108,7 @@ class CompaniesController {
            const { id } = req.params;
            const { isActive } = req.body;
 
-           const updated = await this.companiesService.toggleCompanyStatus(id, isActive);
+           const updated = await this.companiesService.toggleCompanyStatus(id as string, isActive);
            return res.status(200).json(ApiResponse.success(updated, `Company ${isActive ? 'enabled' : 'disabled'} successfully`));
        } catch (error: any) {
            next(error);

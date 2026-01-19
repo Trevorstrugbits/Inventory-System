@@ -38,7 +38,7 @@ class InviteController {
       if (!token) {
         throw new AppError('Invite token is required', 400);
       }
-      const inviteData = await this.inviteService.verifyInviteToken(token);
+      const inviteData = await this.inviteService.verifyInviteToken(token as string);
       return res.status(200).json(ApiResponse.success(inviteData, 'Token is valid'));
     } catch (error) {
       next(error);
@@ -73,7 +73,7 @@ class InviteController {
       if (!inviteId) {
         throw new AppError('Invite ID is required', 400);
       }
-      const result = await this.inviteService.cancelInvite(inviteId);
+      const result = await this.inviteService.cancelInvite(inviteId as string);
       return res.status(200).json(ApiResponse.success(null, result.message));
     } catch (error) {
       next(error);

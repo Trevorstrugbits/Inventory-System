@@ -34,7 +34,7 @@ class JobsController {
       const { id } = req.params;
       const user = (req as any).user;
 
-      const job = await this.jobsService.getJob(id, user);
+      const job = await this.jobsService.getJob(id as string, user);
       if (!job) {
         throw new AppError('Job not found', 404);
       }
@@ -79,7 +79,7 @@ class JobsController {
       const user = (req as any).user;
       const data = req.body;
 
-      const updatedJob = await this.jobsService.updateJob(id, data, user);
+      const updatedJob = await this.jobsService.updateJob(id as string, data, user);
       return res.status(200).json(ApiResponse.success(updatedJob, 'Job updated successfully'));
     } catch (error: any) {
       next(error);
@@ -96,7 +96,7 @@ class JobsController {
       const { status } = req.body;
       const user = (req as any).user;
 
-      const updatedJob = await this.jobsService.updateJobStatus(id, status, user);
+      const updatedJob = await this.jobsService.updateJobStatus(id as string, status, user);
       return res.status(200).json(ApiResponse.success(updatedJob, 'Job status updated successfully'));
     } catch (error: any) {
       next(error);
@@ -112,7 +112,7 @@ class JobsController {
       const { id } = req.params;
       const user = (req as any).user;
 
-      const archivedJob = await this.jobsService.archiveJob(id, user);
+      const archivedJob = await this.jobsService.archiveJob(id as string, user);
       return res.status(200).json(ApiResponse.success(archivedJob, 'Job archived successfully'));
     } catch (error: any) {
       next(error);
@@ -149,7 +149,7 @@ class JobsController {
       const { id } = req.params;
       const user = (req as any).user;
 
-      const job = await this.jobsService.getArchivedJobById(id, user);
+      const job = await this.jobsService.getArchivedJobById(id as string, user);
       if (!job) {
         throw new AppError('Archived job not found', 404);
       }

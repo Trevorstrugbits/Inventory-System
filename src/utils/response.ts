@@ -29,6 +29,22 @@ export class ApiResponse {
       statusCode: 200
     };
   }
+
+  /**
+   * Send an error JSON response
+   * @param message Error message
+   * @param statusCode HTTP status code (default: 500)
+   * @param errors Optional array of specific errors
+   */
+  static error(message: string = 'Error', statusCode: number = 500, errors: any[] = []) {
+    return {
+      success: false,
+      message,
+      data: null,
+      errors,
+      statusCode
+    };
+  }
 }
 
 export default ApiResponse;

@@ -21,7 +21,7 @@ class UsersController {
             const currentUser = (req as any).user;
 
             // Fetch user
-            const user = await this.usersService.getUserById(id);
+            const user = await this.usersService.getUserById(id as string);
             if (!user) {
                 throw new AppError('User not found', 404);
             }
@@ -64,7 +64,7 @@ class UsersController {
 
             // Fetch paginated users
             const result = await this.usersService.getUsersByCompanyId(
-                companyId,
+                companyId as string,
 
                 {
                     page: page ? Number(page) : 1,
@@ -134,7 +134,7 @@ class UsersController {
             const updates = req.body;
 
             // Check if user belongs to same company
-            const targetUser = await this.usersService.getUserById(id);
+            const targetUser = await this.usersService.getUserById(id as string);
             if (!targetUser) {
                 throw new AppError('User not found', 404);
             }
@@ -143,7 +143,7 @@ class UsersController {
                 throw new AppError('Access denied', 403);
             }
 
-            const updatedUser = await this.usersService.updateUser(id, updates);
+            const updatedUser = await this.usersService.updateUser(id as string, updates);
 
             // Remove password from response
             const { password, ...userWithoutPassword } = updatedUser;
@@ -163,7 +163,7 @@ class UsersController {
             const currentUser = (req as any).user;
 
             // Check if user belongs to same company
-            const targetUser = await this.usersService.getUserById(id);
+            const targetUser = await this.usersService.getUserById(id as string);
             if (!targetUser) {
                 throw new AppError('User not found', 404);
             }
@@ -177,7 +177,7 @@ class UsersController {
                 throw new AppError('Access denied', 403);
             }
 
-            await this.usersService.deleteUser(id);
+            await this.usersService.deleteUser(id as string);
 
             return res.status(200).json(ApiResponse.success(null, 'User deleted successfully'));
         } catch (error: any) {

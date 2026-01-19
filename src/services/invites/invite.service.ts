@@ -1,4 +1,4 @@
-import { requireCompanyAdminOrSuperAdmin } from './../../middleware/rbac';
+import { requireCompanyAdminOrSuperAdmin } from './../../middleware/rbac.js';
 import { UserRole } from '@prisma/client';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
