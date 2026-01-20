@@ -217,8 +217,7 @@ export class MaterialVariantService {
       db.prisma.materialVariant.findMany({
         where,
         skip,
-        take: limit,
-        orderBy: { name: 'asc' },
+orderBy: [{ name: 'asc' }, { id: 'asc' }],
         include: {
           material: true,
         },

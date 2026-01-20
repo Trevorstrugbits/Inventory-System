@@ -252,7 +252,7 @@ export class JobsService {
         where,
         skip,
         take: limit,
-        orderBy: { createdAt: 'desc' },
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         include: includeClause
       })
     ]);
