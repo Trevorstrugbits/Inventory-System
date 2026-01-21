@@ -1,6 +1,6 @@
 import { prisma } from '../../db/db.service.js';
 import { hashPassword } from '../../utils/helpers.js';
-import { deleteFromS3, uploadToS3 } from '../../utils/s3.util.js';
+import { deleteFromS3, uploadBase64ToS3, uploadMulterFileToS3 } from '../../utils/s3.util.js';
 import crypto from 'crypto';
 
 export class ProfileService {
@@ -32,13 +32,41 @@ export class ProfileService {
      * Update user profile
      */
     async updateProfile(userId: string, data: any) {
-        const { password, ...profileData } = data;
+        const { password, profileImage, ...profileData } = data;
+
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        if (!user) {
+            throw new Error('User not found');
+        }
 
         // Handle password update
         if (password) {
             const hashedPassword = await hashPassword(password);
             profileData.password = hashedPassword;
         }
+
+        // Handle profile image update from base64 string
+        if (profileImage) {
+            // If user has an old profile image, delete it from S3
+            if (user.profileImage) {
+                try {
+                    // Extract key from URL
+                    const key = user.profileImage.split('/').pop();
+                    if (key) {
+                        await deleteFromS3(key);
+                    }
+                } catch (error) {
+                    // Log error but don't block update
+                    console.error(`Failed to delete old profile image from S3: ${error}`);
+                }
+            }
+            const matches = profileImage.match(/^data:image\/([A-Za-z-+\/]+);base64,(.+)$/);
+            const extension = matches ? matches[1] : 'jpg';
+            const newFileName = `${userId}-${crypto.randomBytes(16).toString('hex')}.${extension}`;
+            const imageUrl = await uploadBase64ToS3(profileImage, newFileName);
+            profileData.profileImage = imageUrl;
+        }
+
 
         const updatedUser = await prisma.user.update({
             where: { id: userId },
@@ -83,7 +111,7 @@ export class ProfileService {
         // Upload new image to S3
         const fileExtension = file.originalname.split('.').pop();
         const newFileName = `${userId}-${crypto.randomBytes(16).toString('hex')}.${fileExtension}`;
-        const imageUrl = await uploadToS3(file, newFileName);
+        const imageUrl = await uploadMulterFileToS3(file, newFileName);
 
         // Update user's profileImage URL
         const updatedUser = await prisma.user.update({
