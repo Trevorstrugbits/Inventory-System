@@ -1,6 +1,6 @@
 import { prisma } from '../../db/db.service.js';
 import { hashPassword } from '../../utils/helpers.js';
-import { deleteFromS3, uploadBase64ToS3, uploadMulterFileToS3 } from '../../utils/s3.util.js';
+import { deleteFromS3, uploadBase64ToS3, uploadMulterFileToS3, getPreSignedUrl } from '../../utils/s3.util.js';
 import crypto from 'crypto';
 
 export class ProfileService {
@@ -8,7 +8,7 @@ export class ProfileService {
      * Get user profile by ID
      */
     async getProfile(userId: string) {
-        const user = await prisma.user.findUnique({
+        let user = await prisma.user.findUnique({
             where: { id: userId },
             select: {
                 firstName: true,
@@ -23,6 +23,13 @@ export class ProfileService {
 
         if (!user) {
             throw new Error('User not found');
+        }
+
+        if (user.profileImage) {
+            const key = user.profileImage.split('/').pop();
+            if (key) {
+                user.profileImage = await getPreSignedUrl(key);
+            }
         }
 
         return user;
@@ -68,7 +75,7 @@ export class ProfileService {
         }
 
 
-        const updatedUser = await prisma.user.update({
+        let updatedUser = await prisma.user.update({
             where: { id: userId },
             data: profileData,
             select: {
@@ -81,6 +88,13 @@ export class ProfileService {
                 role: true,
             },
         });
+
+        if (updatedUser.profileImage) {
+            const key = updatedUser.profileImage.split('/').pop();
+            if (key) {
+                updatedUser.profileImage = await getPreSignedUrl(key);
+            }
+        }
 
         return updatedUser;
     }
@@ -114,7 +128,7 @@ export class ProfileService {
         const imageUrl = await uploadMulterFileToS3(file, newFileName);
 
         // Update user's profileImage URL
-        const updatedUser = await prisma.user.update({
+        let updatedUser = await prisma.user.update({
             where: { id: userId },
             data: { profileImage: imageUrl },
             select: {
@@ -127,6 +141,13 @@ export class ProfileService {
                 role: true,
             },
         });
+
+        if (updatedUser.profileImage) {
+            const key = updatedUser.profileImage.split('/').pop();
+            if (key) {
+                updatedUser.profileImage = await getPreSignedUrl(key);
+            }
+        }
 
         return updatedUser;
     }

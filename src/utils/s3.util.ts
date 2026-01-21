@@ -2,7 +2,9 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand // Import GetObjectCommand
 } from '@aws-sdk/client-s3';
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner"; // Import getSignedUrl
 import { env } from '../config/env.js';
 
 const s3Client = new S3Client({
@@ -23,7 +25,6 @@ export const uploadToS3 = async (
     Key: key,
     Body: buffer,
     ContentType: contentType,
-    ACL: 'public-read', // Add this line to make the object publicly readable
   });
 
   await s3Client.send(command);
@@ -56,4 +57,12 @@ export const deleteFromS3 = async (key: string) => {
   });
 
   await s3Client.send(command);
+};
+
+export const getPreSignedUrl = async (key: string, expiresIn: number = 3600) => {
+    const command = new GetObjectCommand({
+        Bucket: env.AWS_BUCKET_NAME,
+        Key: key,
+    });
+    return getSignedUrl(s3Client, command, { expiresIn });
 };
