@@ -195,11 +195,11 @@ export class JobsService {
     if (!job) return null;
 
     if (user.role === UserRole.SUPERADMIN) {
-      // If jobMaterials exist, transform the array to an object keyed by variantId
+      // If jobMaterials exist, transform the array to an object keyed by materialId
       if (job.jobMaterials) {
         (job as any).jobMaterials = job.jobMaterials.reduce((acc: any, material: any) => {
-          if (material.variant && material.variant.variantId) {
-            acc[material.variant.variantId] = material;
+          if (material.materialId) { // Use materialId for the key
+            acc[material.materialId] = material;
           }
           return acc;
         }, {});
@@ -212,12 +212,12 @@ export class JobsService {
       throw new Error('Access denied: Job belongs to another company.');
     }
 
-    // If jobMaterials exist, transform the array to an object keyed by variantId
+    // If jobMaterials exist, transform the array to an object keyed by materialId
     if (job.jobMaterials) {
       (job as any).jobMaterials = job.jobMaterials.reduce((acc: any, material: any) => {
-        if (material.variant && material.variant.variantId) {
-          acc[material.variant.variantId] = material;
-        }
+        if (material.materialId) { // Use materialId for the key
+            acc[material.materialId] = material;
+          }
         return acc;
       }, {});
     }
@@ -295,8 +295,8 @@ export class JobsService {
     const transformedJobs = jobs.map(job => {
       if (job.jobMaterials) {
         (job as any).jobMaterials = job.jobMaterials.reduce((acc: any, material: any) => {
-          if (material.variant && material.variant.variantId) {
-            acc[material.variant.variantId] = material;
+          if (material.materialId) { // Use materialId for the key
+            acc[material.materialId] = material;
           }
           return acc;
         }, {});
