@@ -59,33 +59,33 @@ export class StocksService {
       }
     }
 
-    // 3. Get all stock for the company
-    const companyStock = await prisma.stock.findMany({
+    // 3. Get all CompanyQuantityOverride for the company (to use as "inStock" for projection)
+    const companyQuantityOverrides = await prisma.companyQuantityOverride.findMany({
       where: { companyId },
     });
     
-    // 4. Aggregate stock quantities for each variant across all locations
+    // 4. Populate stockQuantities map from CompanyQuantityOverride
     const stockQuantities = new Map<string, number>();
-    for (const stockItem of companyStock) {
-        const existingStock = stockQuantities.get(stockItem.variantId) || 0;
-        stockQuantities.set(stockItem.variantId, existingStock + Number(stockItem.inStock));
+    for (const overrideItem of companyQuantityOverrides) {
+        const existingStock = stockQuantities.get(overrideItem.variantId) || 0;
+        stockQuantities.set(overrideItem.variantId, existingStock + Number(overrideItem.quantity)); // Use override.quantity as inStock
     }
-
 
     // 5. Combine and calculate needed quantities
     const projection = Array.from(requiredQuantities.values()).map(({ variant, required }) => {
-      const inStock = stockQuantities.get(variant.id) || 0;
+      // Use the quantity from CompanyQuantityOverride as the "inStock" for projection
+      const inStock = stockQuantities.get(variant.id) || 0; 
       const needed = Math.max(0, required - inStock);
       return {
         'color': variant.color,
         'name': variant.name,
         'productType': variant.material.type,
-        'inStock': inStock,
+        'inStock': inStock, // This now reflects CompanyQuantityOverride.quantity
         'useQty': required,
         'toOrder': needed,
-        variantId: variant.variantId, // Keeping variantId for potential internal use
-        variantName: variant.name, // Keeping variantName for context
-        materialName: variant.material.name, // Adding material name for context
+        variantId: variant.variantId,
+        variantName: variant.name,
+        materialName: variant.material.name,
       };
     });
 
