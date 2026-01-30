@@ -7,7 +7,8 @@ interface CreateMaterialVariantInput {
   name: string;
   color?: string;
   type?: string;
-  pricePerGallon: number;
+  regularPrice: number;
+  preferredPrice: number;
   coverageArea: number;
   overageRate: number;
 }
@@ -17,7 +18,8 @@ interface UpdateMaterialVariantInput {
   name?: string;
   color?: string;
   type?: string;
-  pricePerGallon?: number;
+  regularPrice?: number;
+  preferredPrice?: number;
   coverageArea?: number;
   overageRate?: number;
   isActive?: boolean;
@@ -36,7 +38,8 @@ interface CsvRow {
   name: string;
   color?: string;
   type?: string;
-  pricePerGallon: string;
+  regularPrice: string;
+  preferredPrice: string;
   coverageArea: string;
   overageRate: string;
 }
@@ -123,8 +126,19 @@ export class MaterialVariantService {
   ) {
     const isCompanyUser = user.role === UserRole.COMPANY || user.role === UserRole.EMPLOYEE;
     if (!isCompanyUser || !user.companyId) {
-      return variants; // Return original variants if not a company user
+      // For Superadmin or unauthenticated, simply return variants with their regularPrice as effectivePrice
+      return variants.map(variant => ({
+          ...variant,
+          effectivePrice: variant.regularPrice, // Default to regular price
+      }));
     }
+
+    const company = await db.prisma.company.findUnique({
+      where: { id: user.companyId },
+      select: { preferredPriceEnabled: true },
+    });
+
+    const usePreferredPrice = company?.preferredPriceEnabled === true;
 
     const overrides = await db.prisma.companyOverageOverride.findMany({
       where: {
@@ -134,18 +148,24 @@ export class MaterialVariantService {
       select: { variantId: true, overageRate: true }
     });
 
-    if (overrides.length === 0) {
-        return variants; // No overrides for this set of variants, return original
+    if (overrides.length === 0 && !usePreferredPrice) {
+        return variants.map(variant => ({
+            ...variant,
+            effectivePrice: variant.regularPrice, // Default to regular price
+        }));
     }
     
     const overageMap = new Map(overrides.map(o => [o.variantId, o.overageRate]));
 
     return variants.map(variant => {
         const overrideRate = overageMap.get(variant.id);
-        // Create a new object to avoid modifying the original object from cache
-        return overrideRate !== undefined
-            ? { ...variant, companyOverageRate: overrideRate }
-            : variant;
+        const effectivePrice = usePreferredPrice ? variant.preferredPrice : variant.regularPrice;
+
+        return {
+            ...variant,
+            effectivePrice: effectivePrice,
+            companyOverageRate: overrideRate !== undefined ? overrideRate : undefined
+        };
     });
   }
 
@@ -224,16 +244,18 @@ export class MaterialVariantService {
         },
       });
     
-    // 2. Apply overage rate logic using the helper
-    const variantsWithCorrectOverage = await this._applyOverageRates(variantsWithMaterial, user);
-    const variantsWithCorrectQuantity = await this._applyQuantityOverrides(variantsWithCorrectOverage, user);
+    // 2. Apply overage rate logic and effective pricing using the helper
+    const variantsWithCorrectOverageAndPricing = await this._applyOverageRates(variantsWithMaterial, user);
+    const variantsWithCorrectQuantity = await this._applyQuantityOverrides(variantsWithCorrectOverageAndPricing, user);
 
     // 3. Format the final output
     const formattedVariants = variantsWithCorrectQuantity.map((variant: any) => ({
         'product type': variant.material.name,
         name: variant.name,
         color: variant.color,
-        pricePerGallon: Number(variant.pricePerGallon),
+        regularPrice: Number(variant.regularPrice), // New field
+        preferredPrice: Number(variant.preferredPrice), // New field
+        effectivePrice: Number(variant.effectivePrice), // New field
         coverageArea: Number(variant.coverageArea),
         overageRate: Number(variant.overageRate),
         quantity: Number(variant.quantity),
@@ -260,7 +282,14 @@ export class MaterialVariantService {
   async createVariant(data: CreateMaterialVariantInput, user: JwtPayload) {
     const newVariant = await db.prisma.materialVariant.create({
       data: {
-        ...data,
+        materialId: data.materialId,
+        name: data.name,
+        color: data.color,
+        type: data.type,
+        regularPrice: data.regularPrice,
+        preferredPrice: data.preferredPrice,
+        coverageArea: data.coverageArea,
+        overageRate: data.overageRate,
       },
       include: {
         material: true,
@@ -284,7 +313,16 @@ export class MaterialVariantService {
 
     const updatedVariant = await db.prisma.materialVariant.update({
       where: { id },
-      data,
+      data: {
+        name: data.name,
+        color: data.color,
+        type: data.type,
+        regularPrice: data.regularPrice,
+        preferredPrice: data.preferredPrice,
+        coverageArea: data.coverageArea,
+        overageRate: data.overageRate,
+        isActive: data.isActive,
+      },
       include: {
         material: true
       }
@@ -470,7 +508,7 @@ export class MaterialVariantService {
         const rowNum = i + 2; // +1 for header, +1 for 0-index
 
         // Validate required fields
-        if (!row.materialType || !row.name || !row.pricePerGallon || !row.coverageArea || !row.overageRate) {
+        if (!row.materialType || !row.name || !row.regularPrice || !row.preferredPrice || !row.coverageArea || !row.overageRate) {
           errors.push({ row: rowNum, reason: 'Missing required fields' });
           summary.failed++;
           continue;
@@ -483,11 +521,12 @@ export class MaterialVariantService {
           continue;
         }
 
-        const pricePerGallon = parseFloat(row.pricePerGallon);
+        const regularPrice = parseFloat(row.regularPrice);
+        const preferredPrice = parseFloat(row.preferredPrice);
         const coverageArea = parseFloat(row.coverageArea);
         const overageRate = parseFloat(row.overageRate);
 
-        if (isNaN(pricePerGallon) || isNaN(coverageArea) || isNaN(overageRate)) {
+        if (isNaN(regularPrice) || isNaN(preferredPrice) || isNaN(coverageArea) || isNaN(overageRate)) {
           errors.push({ row: rowNum, reason: 'Invalid numeric values' });
           summary.failed++;
           continue;
@@ -498,7 +537,8 @@ export class MaterialVariantService {
           name: row.name,
           color: row.color || null,
           type: row.type || null,
-          pricePerGallon,
+          regularPrice,
+          preferredPrice,
           coverageArea,
           overageRate,
         };
@@ -520,7 +560,8 @@ export class MaterialVariantService {
               data: {
                   color: variantData.color,
                   type: variantData.type,
-                  pricePerGallon: variantData.pricePerGallon,
+                  regularPrice: variantData.regularPrice,
+                  preferredPrice: variantData.preferredPrice,
                   coverageArea: variantData.coverageArea,
                   overageRate: variantData.overageRate,
                   // Don't update name or materialId as they are the composite key

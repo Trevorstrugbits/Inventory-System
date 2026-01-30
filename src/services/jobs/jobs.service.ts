@@ -66,6 +66,14 @@ export class JobsService {
         throw new AppError('User is not associated with a location.', 400);
     }
 
+    // Fetch company's preferredPriceEnabled setting
+    const company = await prisma.company.findUnique({
+        where: { id: companyId },
+        select: { preferredPriceEnabled: true },
+    });
+
+    const usePreferredPrice = company?.preferredPriceEnabled === true;
+
     // Check for duplicate jobId within the same company
     const existingJob = await prisma.job.findFirst({
         where: { jobId: data.jobId, companyId: companyId },
@@ -76,16 +84,18 @@ export class JobsService {
     }
 
     // 1. Validate Material Variants and their types
-    const variantIds = data.jobMaterials.map(jm => Number(jm.variantId));
+    const variantIntIds = data.jobMaterials.map(jm => Number(jm.variantId));
     const materialVariants = await prisma.materialVariant.findMany({
       where: {
-        variantId: { in: variantIds },
+        variantId: { in: variantIntIds },
       },
       select: {
         id: true,
         variantId: true,
         type: true,
         materialId: true,
+        regularPrice: true, // Include regularPrice
+        preferredPrice: true, // Include preferredPrice
         material: {
           select: {
             unit: true,
@@ -94,7 +104,7 @@ export class JobsService {
       },
     });
 
-    if (materialVariants.length !== variantIds.length) {
+    if (materialVariants.length !== variantIntIds.length) {
       throw new AppError('One or more material variants not found.', 404);
     }
 
@@ -120,8 +130,8 @@ export class JobsService {
         }
     }
 
-    const variantIdToMaterialDetailsMap = new Map<number, typeof materialVariants[0]>();
-    materialVariants.forEach(mv => variantIdToMaterialDetailsMap.set(mv.variantId, mv));
+    const variantIntIdToMaterialDetailsMap = new Map<number, typeof materialVariants[0]>();
+    materialVariants.forEach(mv => variantIntIdToMaterialDetailsMap.set(mv.variantId, mv));
 
     // 3. Create Job and JobMaterials in a transaction
     return prisma.$transaction(async (prisma) => {
@@ -144,15 +154,17 @@ export class JobsService {
       });
 
       const jobMaterialsToCreate = data.jobMaterials.map(jm => {
-        const variantDetails = variantIdToMaterialDetailsMap.get(Number(jm.variantId));
+        const variantDetails = variantIntIdToMaterialDetailsMap.get(Number(jm.variantId));
         if (!variantDetails) throw new AppError('Variant details not found', 500);
+
+        const costAtTime = usePreferredPrice ? variantDetails.preferredPrice : variantDetails.regularPrice;
 
         return {
           jobId: job.id,
           materialId: variantDetails.materialId,
           variantId: variantDetails.id, // Use UUID from lookup
           quantityUsed: jm.quantityUsed,
-          costAtTime: jm.cost,
+          costAtTime: costAtTime, // Use the dynamically determined price
           additionalQty: jm.additionalQty,
           additionalCost: jm.additionalCost,
           unit: variantDetails.material.unit,
@@ -318,9 +330,9 @@ export class JobsService {
    * Restriction: Company Admin only (own company)
    */
   async updateJob(id: string, data: UpdateJobData, user: any) {
-    return prisma.$transaction(async (prisma) => {
+    return prisma.$transaction(async (tx) => {
         // 1. Fetch job to verify ownership
-        const job = await prisma.job.findUnique({ where: { id } });
+        const job = await tx.job.findUnique({ where: { id } });
 
         if (!job) {
             throw new AppError('Job not found', 404);
@@ -329,6 +341,13 @@ export class JobsService {
             throw new AppError('Access denied.', 403);
         }
 
+        // Fetch company's preferredPriceEnabled setting for the job's company
+        const company = await tx.company.findUnique({
+            where: { id: job.companyId },
+            select: { preferredPriceEnabled: true },
+        });
+        const usePreferredPrice = company?.preferredPriceEnabled === true;
+
         // 2. Update scalar fields of the job
         const { jobMaterials, ...jobData } = data;
         const scalarUpdateData: any = {
@@ -336,7 +355,7 @@ export class JobsService {
             date: jobData.date ? new Date(jobData.date) : undefined,
             installDate: jobData.installDate ? new Date(jobData.installDate) : undefined,
         };
-        await prisma.job.update({
+        await tx.job.update({
             where: { id },
             data: scalarUpdateData,
         });
@@ -345,9 +364,16 @@ export class JobsService {
         if (jobMaterials) {
             // A. Validate incoming variants and get their details
             const incomingVariantIntIds = jobMaterials.map(jm => Number(jm.variantId));
-            const materialVariants = await prisma.materialVariant.findMany({
+            const materialVariants = await tx.materialVariant.findMany({
                 where: { variantId: { in: incomingVariantIntIds } },
-                select: { id: true, variantId: true, materialId: true, material: { select: { unit: true } } }
+                select: { 
+                    id: true, 
+                    variantId: true, 
+                    materialId: true, 
+                    regularPrice: true, // Include regularPrice
+                    preferredPrice: true, // Include preferredPrice
+                    material: { select: { unit: true } } 
+                }
             });
 
             if (materialVariants.length !== incomingVariantIntIds.length) {
@@ -356,7 +382,7 @@ export class JobsService {
             const variantIntIdToDetailsMap = new Map(materialVariants.map(v => [v.variantId, v]));
 
             // B. Delete all existing materials for the job
-            await prisma.jobMaterial.deleteMany({
+            await tx.jobMaterial.deleteMany({
                 where: { jobId: id },
             });
 
@@ -365,25 +391,28 @@ export class JobsService {
                 const newMaterialsData = jobMaterials.map(jm => {
                     const variantDetails = variantIntIdToDetailsMap.get(Number(jm.variantId));
                     if (!variantDetails) throw new AppError('Variant details not found.', 500); // Should be caught by length check
+
+                    const costAtTime = usePreferredPrice ? variantDetails.preferredPrice : variantDetails.regularPrice;
+
                     return {
                         jobId: id,
                         materialId: variantDetails.materialId,
                         variantId: variantDetails.id, // The UUID for the foreign key
                         quantityUsed: jm.quantityUsed,
-                        costAtTime: jm.cost,
+                        costAtTime: costAtTime, // Use the dynamically determined price
                         additionalQty: jm.additionalQty || 0,
                         additionalCost: jm.additionalCost || 0,
                         unit: variantDetails.material.unit,
                     };
                 });
-                await prisma.jobMaterial.createMany({
+                await tx.jobMaterial.createMany({
                     data: newMaterialsData,
                 });
             }
         }
 
         // 4. Return the fully updated job with the new materials
-        return prisma.job.findUnique({
+        return tx.job.findUnique({
             where: { id },
             include: { jobMaterials: true }
         });

@@ -104,25 +104,7 @@ export class CompaniesService {
     });
   }
 
-  /**
-   * Update company details
-   */
-  async updateCompany(id: string, data: { name?: string; approvedBySuperadmin?: boolean }) {
-      return prisma.company.update({
-          where: { id },
-          data
-      });
-  }
 
-  /**
-   * Toggle company active status
-   */
-  async toggleCompanyStatus(id: string, isActive: boolean) {
-      return prisma.company.update({
-          where: { id },
-          data: { isActive }
-      });
-  }
 
   /**
    * List companies with pagination and filtering
@@ -191,26 +173,38 @@ export class CompaniesService {
   async updateCompanyAndLocation(
     companyId: string, 
     user: JwtPayload,
-    companyData: { name?: string; approvedBySuperadmin?: boolean }, 
+    companyData: { 
+        name?: string; 
+        approvedBySuperadmin?: boolean; 
+        isActive?: boolean;
+        preferredPriceEnabled?: boolean;
+    }, 
     locationData?: { id: string; name?: string; street?: string; city?: string; state?: string; postalCode?: string; country?: string }
   ) {
     return prisma.$transaction(async (tx) => {
-      let updatedCompany = null;
-      let updatedLocation = null;
+      const updatePayload: Prisma.CompanyUpdateInput = {};
 
-      // 1. Update Company details if provided
-      if (companyData.name) {
-        updatedCompany = await tx.company.update({
-          where: { id: companyId },
-          data: { name: companyData.name },
-        });
+      if (companyData.name !== undefined) {
+          updatePayload.name = companyData.name;
       }
 
-      // If user is superadmin, they can also approve
-      if (user.role === UserRole.SUPERADMIN && companyData.approvedBySuperadmin !== undefined) {
-        updatedCompany = await tx.company.update({
+      if (user.role === UserRole.SUPERADMIN) {
+          if (companyData.approvedBySuperadmin !== undefined) {
+              updatePayload.approvedBySuperadmin = companyData.approvedBySuperadmin;
+          }
+          if (companyData.isActive !== undefined) {
+              updatePayload.isActive = companyData.isActive;
+          }
+          if (companyData.preferredPriceEnabled !== undefined) {
+              updatePayload.preferredPriceEnabled = companyData.preferredPriceEnabled;
+          }
+      }
+
+      // Update Company details
+      if (Object.keys(updatePayload).length > 0) {
+        await tx.company.update({
           where: { id: companyId },
-          data: { approvedBySuperadmin: companyData.approvedBySuperadmin },
+          data: updatePayload,
         });
       }
 
@@ -232,7 +226,7 @@ export class CompaniesService {
         
         // Only update if there are fields to update
         if (Object.keys(locationFieldsToUpdate).length > 0) {
-            updatedLocation = await tx.location.update({
+            await tx.location.update({
                 where: { id: locationId },
                 data: locationFieldsToUpdate,
             });

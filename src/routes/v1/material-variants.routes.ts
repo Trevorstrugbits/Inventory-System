@@ -27,7 +27,8 @@ const createVariantSchema = Joi.object({
     name: Joi.string().required(),
     color: Joi.string().optional().allow(null, ''),
     type: Joi.string().optional().allow(null, ''),
-    pricePerGallon: Joi.number().min(0).required(),
+    regularPrice: Joi.number().min(0).required(),
+    preferredPrice: Joi.number().min(0).required(),
     coverageArea: Joi.number().min(0).required(),
     overageRate: Joi.number().min(0).required(),
 });
@@ -36,7 +37,8 @@ const updateVariantSchema = Joi.object({
     name: Joi.string().optional(),
     color: Joi.string().optional().allow(null, ''),
     type: Joi.string().optional().allow(null, ''),
-    // pricePerGallon removed to prevent editing
+    regularPrice: Joi.number().min(0).optional(),
+    preferredPrice: Joi.number().min(0).optional(),
     overageRate: Joi.number().min(0).optional(),
     isActive: Joi.boolean().optional(),
 });
@@ -65,7 +67,8 @@ router.post('/variants', authenticateToken, requireSuperAdmin, validate(Joi.obje
     name: Joi.string().required(),
     color: Joi.string().optional().allow(null, ''),
     type: Joi.string().optional().allow(null, ''),
-    pricePerGallon: Joi.number().min(0).required(),
+    regularPrice: Joi.number().min(0).required(),
+    preferredPrice: Joi.number().min(0).required(),
     coverageArea: Joi.number().min(0).required(),
     overageRate: Joi.number().min(0).required(),
 })), materialVariantController.createVariant);

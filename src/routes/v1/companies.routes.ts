@@ -20,6 +20,8 @@ const createCompanySchema = Joi.object({
 const updateCompanySchema = Joi.object({
     name: Joi.string().optional(),
     approvedBySuperadmin: Joi.boolean().optional(),
+    isActive: Joi.boolean().optional(),
+    preferredPriceEnabled: Joi.boolean().optional(),
     location: Joi.object({
         id: Joi.string().required(),
         name: Joi.string().optional(),
@@ -31,9 +33,7 @@ const updateCompanySchema = Joi.object({
     }).optional(),
 });
 
-const toggleStatusSchema = Joi.object({
-    isActive: Joi.boolean().required(),
-});
+
 
 // Create Company (Invite-based) - Public endpoint (protected by token body)
 router.post('/', validate(createCompanySchema), companiesController.createCompany);

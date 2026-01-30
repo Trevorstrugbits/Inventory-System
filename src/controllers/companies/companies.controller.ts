@@ -77,16 +77,36 @@ class CompaniesController {
   updateCompany = async (req: Request, res: Response, next: NextFunction) => {
       try {
           const { id } = req.params;
-          const { name, approvedBySuperadmin, location } = req.body;
+          const { name, approvedBySuperadmin, isActive, preferredPriceEnabled, location } = req.body;
           const user = (req as any).user;
 
-          // Access Logic
+          const updateData: { 
+            name?: string; 
+            approvedBySuperadmin?: boolean; 
+            isActive?: boolean; 
+            preferredPriceEnabled?: boolean 
+          } = {};
+
+          if (name !== undefined) {
+              updateData.name = name;
+          }
+
           if (user.role === UserRole.SUPERADMIN) {
-              // Superadmin can update everything
+              // Superadmin can update approvedBySuperadmin, isActive, and preferredPriceEnabled
+              if (approvedBySuperadmin !== undefined) {
+                  updateData.approvedBySuperadmin = approvedBySuperadmin;
+              }
+              if (isActive !== undefined) {
+                  updateData.isActive = isActive;
+              }
+              if (preferredPriceEnabled !== undefined) {
+                  updateData.preferredPriceEnabled = preferredPriceEnabled;
+              }
           } else if (user.role === UserRole.COMPANY && user.companyId === id) {
               // Company admin can only update their own company's name and location
-              if (approvedBySuperadmin !== undefined) {
-                  throw new AppError('Only superadmin can approve companies', 403);
+              // They cannot change approvedBySuperadmin, isActive, or preferredPriceEnabled
+              if (approvedBySuperadmin !== undefined || isActive !== undefined || preferredPriceEnabled !== undefined) {
+                  throw new AppError('Only superadmin can modify approval status, active status, or preferred pricing settings', 403);
               }
           } else {
                throw new AppError('Access denied', 403);
@@ -95,7 +115,7 @@ class CompaniesController {
           const updated = await this.companiesService.updateCompanyAndLocation(
             id as string, 
             user,
-            { name, approvedBySuperadmin }, 
+            updateData, 
             location
           );
           
@@ -105,21 +125,7 @@ class CompaniesController {
       }
   }
 
-  /**
-   * Disable / Enable Company
-   * Superadmin only
-   */
-  toggleStatus = async (req: Request, res: Response, next: NextFunction) => {
-       try {
-           const { id } = req.params;
-           const { isActive } = req.body;
 
-           const updated = await this.companiesService.toggleCompanyStatus(id as string, isActive);
-           return res.status(200).json(ApiResponse.success(updated, `Company ${isActive ? 'enabled' : 'disabled'} successfully`));
-       } catch (error: any) {
-           next(error);
-       }
-  }
 }
 
 export default new CompaniesController();

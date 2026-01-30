@@ -75,6 +75,7 @@ model Company {
   overageOverrides CompanyOverageOverride[]
   quantityOverrides CompanyQuantityOverride[]
   invites          Invite[]
+  preferredPriceEnabled Boolean @default(false)
 
   @@index([companyAdminId])
   @@index([email])
@@ -146,7 +147,8 @@ model MaterialVariant {
   name           String // e.g. "Red 528", "Blue High-Solid"
   color          String?
   type           String?
-  pricePerGallon Decimal  @db.Decimal(10, 2)
+  regularPrice   Decimal  @db.Decimal(10, 2)
+  preferredPrice Decimal  @db.Decimal(10, 2)
   coverageArea   Decimal  @db.Decimal(10, 2)
   overageRate    Decimal  @db.Decimal(10, 2)
   quantity       Decimal  @default(0) @db.Decimal(10, 2)
