@@ -233,16 +233,21 @@ export class MaterialVariantService {
     }
 
     // 1. Get paginated variants
-    const variantsWithMaterial = await db.prisma.materialVariant.findMany({
+    const findManyArgs: Prisma.MaterialVariantFindManyArgs = {
         where,
         take: limit,
-        skip: cursor ? 1 : 0,
-        cursor: cursor ? { id: cursor } : undefined,
         orderBy: [{ name: 'asc' }, { id: 'asc' }],
         include: {
           material: true,
         },
-      });
+    };
+
+    if (cursor) {
+        findManyArgs.skip = 1;
+        findManyArgs.cursor = { id: cursor };
+    }
+
+    const variantsWithMaterial = await db.prisma.materialVariant.findMany(findManyArgs);
     
     // 2. Apply overage rate logic and effective pricing using the helper
     const variantsWithCorrectOverageAndPricing = await this._applyOverageRates(variantsWithMaterial, user);
