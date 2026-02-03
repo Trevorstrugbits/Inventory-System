@@ -105,10 +105,6 @@ export class CompaniesService {
     });
   }
 
-
-
-import { paginate } from '../../utils/pagination.js';
-
   /**
    * List companies with pagination and filtering
    */
