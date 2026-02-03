@@ -3,6 +3,7 @@ import { prisma } from '../../db/db.service.js';
 import inviteService from '../invites/invite.service.js';
 import { hashPassword } from '../../utils/helpers.js';
 import { AppError } from '../../middleware/error.middleware.js';
+import { paginate } from '../../utils/pagination.js';
 import { JwtPayload } from '../../middleware/jwtAuth.js';
 
 export class CompaniesService {
@@ -106,12 +107,14 @@ export class CompaniesService {
 
 
 
+import { paginate } from '../../utils/pagination.js';
+
   /**
    * List companies with pagination and filtering
    */
-  async listCompanies(params: { cursor?: string, limit?: number; isActive?: boolean, search?: string }) {
+  async listCompanies(params: { page?: number, limit?: number; isActive?: boolean, search?: string }) {
+      const page = params.page || 1;
       const limit = params.limit || 10;
-      const cursor = params.cursor;
 
       const where: Prisma.CompanyWhereInput = {};
       if (params.isActive !== undefined) {
@@ -137,33 +140,28 @@ export class CompaniesService {
         ];
       }
 
-      const companies = await prisma.company.findMany({
-              where,
-              take: limit,
-              skip: cursor ? 1 : 0,
-              cursor: cursor ? { id: cursor } : undefined,
-              orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
-              include: {
-                  companyAdmin: {
-                      select: {
-                          firstName: true,
-                          lastName: true,
-                          email: true
-                      }
-                  },
-                  _count: {
-                      select: { locations: true, users: true }
-                  }
-              }
-          });
-
-      const nextCursor = companies.length === limit ? companies[companies.length - 1].id : null;
+      const result = await paginate(prisma.company, {
+        page,
+        limit,
+        where,
+        orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
+        include: {
+            companyAdmin: {
+                select: {
+                    firstName: true,
+                    lastName: true,
+                    email: true
+                }
+            },
+            _count: {
+                select: { locations: true, users: true }
+            }
+        }
+      });
 
       return {
-          companies,
-          meta: {
-              nextCursor
-          }
+          companies: result.data,
+          meta: result.meta
       };
   }
 

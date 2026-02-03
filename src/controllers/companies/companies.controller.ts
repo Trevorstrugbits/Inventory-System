@@ -54,16 +54,16 @@ class CompaniesController {
     */
    listCompanies = async (req: Request, res: Response, next: NextFunction) => {
       try {
-          const { cursor, limit, isActive } = req.query;
+          const { page, limit, isActive } = req.query;
           const search = req.query.search || req.query.q || req.query.query;
 
           const result = await this.companiesService.listCompanies({
-              cursor: cursor as string,
+              page: page ? Number(page) : 1,
               limit: limit ? Number(limit) : 10,
               isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
               search: search as string | undefined,
           });
-          return res.status(200).json(ApiResponse.cursorPaginated(result.companies, result.meta));
+          return res.status(200).json(ApiResponse.paginated(result.companies, result.meta));
       } catch (error: any) {
           next(error);
       }

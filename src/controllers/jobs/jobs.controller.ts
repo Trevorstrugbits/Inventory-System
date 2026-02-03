@@ -52,10 +52,10 @@ class JobsController {
   listJobs = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
-      const { cursor, limit, companyId, status, search, detailed } = req.query;
+      const { page, limit, companyId, status, search, detailed } = req.query;
 
       const result = await this.jobsService.listJobs({
-        cursor: cursor as string,
+        page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10,
         companyId: companyId as string,
         status: status as any,
@@ -63,7 +63,7 @@ class JobsController {
         detailed: detailed === 'true',
       }, user);
 
-      return res.status(200).json(ApiResponse.cursorPaginated(result.jobs, result.meta));
+      return res.status(200).json(ApiResponse.paginated(result.jobs, result.meta));
     } catch (error: any) {
       next(error);
     }
@@ -126,15 +126,15 @@ class JobsController {
   listArchivedJobs = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
-      const { cursor, limit, companyId } = req.query;
+      const { page, limit, companyId } = req.query;
 
       const result = await this.jobsService.listArchivedJobs({
-        cursor: cursor as string,
+        page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10,
         companyId: companyId as string,
       }, user);
 
-      return res.status(200).json(ApiResponse.cursorPaginated(result.jobs, result.meta));
+      return res.status(200).json(ApiResponse.paginated(result.jobs, result.meta));
     } catch (error: any) {
       next(error);
     }

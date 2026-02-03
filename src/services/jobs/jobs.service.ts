@@ -1,6 +1,7 @@
 import { Prisma, JobStatus, UserRole } from '@prisma/client';
 import { prisma } from '../../db/db.service.js';
 import { AppError } from '../../middleware/error.middleware.js';
+import { paginate } from '../../utils/pagination.js';
 import { jobTemplates } from '../../config/job.config.js';
 
 interface CreateJobMaterial {
@@ -241,9 +242,9 @@ export class JobsService {
    * List jobs
    * Restriction: Superadmin (all), Company/Employee (own company only)
    */
-  async listJobs(params: { cursor?: string, page?: number; limit?: number; companyId?: string; status?: JobStatus; search?: string, detailed?: boolean }, user: any) {
+  async listJobs(params: { page?: number; limit?: number; companyId?: string; status?: JobStatus; search?: string, detailed?: boolean }, user: any) {
+    const page = params.page || 1;
     const limit = params.limit || 10;
-    const cursor = params.cursor;
 
     const where: Prisma.JobWhereInput = {};
 
@@ -260,6 +261,9 @@ export class JobsService {
     // Filter by Status
     if (params.status) {
       where.status = params.status;
+    } else {
+      // By default, do not show archived jobs unless explicitly requested
+      where.status = { not: JobStatus.ARCHIVED };
     }
 
     // Search Logic
@@ -292,19 +296,16 @@ export class JobsService {
         createdBy: { select: { firstName: true, lastName: true } }
     };
 
-    const jobs = await prisma.job.findMany({
+    const result = await paginate(prisma.job, {
+        page,
+        limit,
         where,
-        take: limit,
-        skip: cursor ? 1 : 0,
-        cursor: cursor ? { id: cursor } : undefined,
         orderBy: [{ createdAt: 'desc' }, { id: 'asc' }],
         include: includeClause
       });
 
-    const nextCursor = jobs.length === limit ? jobs[jobs.length - 1].id : null;
-
     // Transform jobMaterials array to object for each job
-    const transformedJobs = jobs.map(job => {
+    const transformedJobs = result.data.map(job => {
       if (job.jobMaterials) {
         (job as any).jobMaterials = job.jobMaterials.reduce((acc: any, material: any) => {
           if (material.materialId) { // Use materialId for the key
@@ -319,9 +320,7 @@ export class JobsService {
 
     return {
       jobs: transformedJobs,
-      meta: {
-        nextCursor
-      }
+      meta: result.meta
     };
   }
 
@@ -467,11 +466,13 @@ export class JobsService {
    * List all archived jobs
    * Restriction: Superadmin (all), Company/Employee (own company only)
    */
-  async listArchivedJobs(params: { cursor?: string, limit?: number; companyId?: string }, user: any) {
+  async listArchivedJobs(params: { page?: number, limit?: number; companyId?: string }, user: any) {
     const limit = params.limit || 10;
+    const page = params.page || 1;
     
     const listParams = {
       ...params,
+      page,
       limit,
       status: JobStatus.ARCHIVED
     };
