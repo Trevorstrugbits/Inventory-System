@@ -87,7 +87,18 @@ class UsersController {
                 isEmployeeOnly ? true : false,
             );
 
-            return res.status(200).json(ApiResponse.paginated(result.data, result.pagination, 'Users retrieved successfully'));
+            // Transform pagination result from service to expected meta format
+            const { total, totalPages } = result.pagination;
+            const meta = {
+                currentPage: Number(page),
+                limit: Number(limit),
+                totalRecords: total,
+                totalPages: totalPages,
+                hasNextPage: Number(page) < totalPages,
+                hasPrevPage: Number(page) > 1,
+            };
+
+            return res.status(200).json(ApiResponse.paginated(result.data, meta, 'Users retrieved successfully'));
         } catch (error: any) {
             next(error);
         }
