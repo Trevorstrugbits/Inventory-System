@@ -55,6 +55,7 @@ model User {
   adminOfCompany Company? @relation("CompanyAdmin")
 
   createdJobs Job[] @relation("CreatedBy")
+  assignedJobs Job[] @relation("JobAssignments")
 
   @@index([companyId])
   @@index([locationId])
@@ -212,6 +213,7 @@ model Job {
   location     Location @relation(fields: [locationId], references: [id], onDelete: Cascade)
   createdBy    User     @relation("CreatedBy", fields: [createdByUserId], references: [id])
   jobMaterials JobMaterial[]
+  assignedEmployees User[] @relation("JobAssignments")
 
   @@unique([jobId, companyId])
   @@index([companyId])

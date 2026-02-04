@@ -24,6 +24,7 @@ interface CreateJobData {
   jobTemplateName?: string; // e.g., 'standard'
   jobCost?: number;
   companyId?: string; // Optional if inferred from user
+  assignedEmployeeIds?: string[]; // UUIDs of users
   jobMaterials: CreateJobMaterial[];
 }
 
@@ -37,6 +38,7 @@ interface UpdateJobData {
   date?: string | Date;
   installDate?: string | Date;
   jobCost?: number;
+  assignedEmployeeIds?: string[]; // Replace current assignments if provided
   jobMaterials?: {
     variantId: number | string; // Integer ID
     quantityUsed: number;
@@ -135,7 +137,20 @@ export class JobsService {
     const variantIntIdToMaterialDetailsMap = new Map<number, typeof materialVariants[0]>();
     materialVariants.forEach(mv => variantIntIdToMaterialDetailsMap.set(mv.variantId, mv));
 
-    // 3. Create Job and JobMaterials in a transaction
+    // 3. Validate Assigned Employees (must belong to the same company)
+    if (data.assignedEmployeeIds && data.assignedEmployeeIds.length > 0) {
+      const employees = await prisma.user.findMany({
+        where: {
+          id: { in: data.assignedEmployeeIds },
+          companyId: companyId
+        }
+      });
+      if (employees.length !== data.assignedEmployeeIds.length) {
+        throw new AppError('One or more assigned employees are invalid or belong to another company.', 400);
+      }
+    }
+
+    // 4. Create Job and JobMaterials in a transaction
     return prisma.$transaction(async (prisma) => {
       const job = await prisma.job.create({
         data: {
@@ -152,6 +167,9 @@ export class JobsService {
           installDate: new Date(data.installDate),
           jobCost: data.jobCost || 0,
           status: JobStatus.PENDING,
+          assignedEmployees: data.assignedEmployeeIds ? {
+            connect: data.assignedEmployeeIds.map(id => ({ id }))
+          } : undefined,
         },
       });
 
@@ -192,9 +210,18 @@ export class JobsService {
     const job = await prisma.job.findUnique({
       where: { id },
       include: {
-        company: { select: { name: true } },
         location: { select: { name: true } },
         createdBy: { select: { firstName: true, lastName: true, email: true } },
+        assignedEmployees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            email: true,
+            employeeType: true,
+            role: true
+          }
+        },
         jobMaterials: {
           include: {
             variant: {
@@ -212,8 +239,18 @@ export class JobsService {
     if (!job) return null;
 
     // Object-level security check
-    if (user.role !== UserRole.SUPERADMIN && job.companyId !== user.companyId) {
-      throw new AppError('Access denied: Job belongs to another company.', 403);
+    if (user.role !== UserRole.SUPERADMIN) {
+      if (job.companyId !== user.companyId) {
+        throw new AppError('Access denied: Job belongs to another company.', 403);
+      }
+
+      // Installer Restriction: Only see jobs they are assigned to
+      if (user.role === UserRole.EMPLOYEE && user.employeeType === 'INSTALLER') {
+        const isAssigned = job.assignedEmployees.some((emp: any) => emp.id === (user.id || user.userId));
+        if (!isAssigned) {
+          throw new AppError('Access denied: You are not assigned to this job.', 403);
+        }
+      }
     }
 
     // If jobMaterials exist, transform the array to an object keyed by materialId
@@ -263,6 +300,15 @@ export class JobsService {
     } else {
       // Force user's company
       where.companyId = user.companyId;
+
+      // Installer Restriction: Only see jobs they are assigned to
+      if (user.role === UserRole.EMPLOYEE && user.employeeType === 'INSTALLER') {
+        where.assignedEmployees = {
+          some: {
+            id: user.id || user.userId
+          }
+        };
+      }
     }
 
     // Filter by Status
@@ -287,6 +333,14 @@ export class JobsService {
         company: { select: { name: true } },
         location: { select: { name: true } },
         createdBy: { select: { firstName: true, lastName: true, email: true } },
+        assignedEmployees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeType: true
+          }
+        },
         jobMaterials: {
           include: {
             variant: {
@@ -300,7 +354,15 @@ export class JobsService {
         }
     } : {
         location: { select: { name: true } },
-        createdBy: { select: { firstName: true, lastName: true } }
+        createdBy: { select: { firstName: true, lastName: true } },
+        assignedEmployees: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            employeeType: true
+          }
+        }
     };
 
     const result = await paginate(prisma.job, {
@@ -359,11 +421,28 @@ export class JobsService {
         const usePreferredPrice = company?.preferredPriceEnabled === true;
 
         // 2. Update scalar fields of the job
-        const { jobMaterials, ...jobData } = data;
+        const { jobMaterials, assignedEmployeeIds, ...jobData } = data;
+
+        // Validate assigned employees if provided
+        if (assignedEmployeeIds && assignedEmployeeIds.length > 0) {
+          const employees = await tx.user.findMany({
+            where: {
+              id: { in: assignedEmployeeIds },
+              companyId: job.companyId
+            }
+          });
+          if (employees.length !== assignedEmployeeIds.length) {
+            throw new AppError('One or more assigned employees are invalid or belong to another company.', 400);
+          }
+        }
+
         const scalarUpdateData: any = {
             ...jobData,
             date: jobData.date ? new Date(jobData.date) : undefined,
             installDate: jobData.installDate ? new Date(jobData.installDate) : undefined,
+            assignedEmployees: assignedEmployeeIds ? {
+              set: assignedEmployeeIds.map(id => ({ id }))
+            } : undefined,
         };
         await tx.job.update({
             where: { id },

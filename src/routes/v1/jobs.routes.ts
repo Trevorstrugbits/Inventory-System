@@ -30,6 +30,7 @@ const createJobSchema = Joi.object({
     additionalQty: Joi.number().required(),
     additionalCost: Joi.number().required(),
   })).min(1).required(),
+  assignedEmployeeIds: Joi.array().items(Joi.string().uuid()).optional(),
 });
 
 const updateJobSchema = Joi.object({
@@ -51,6 +52,7 @@ const updateJobSchema = Joi.object({
     additionalQty: Joi.number().optional().default(0),
     additionalCost: Joi.number().optional().default(0),
   })).optional(),
+  assignedEmployeeIds: Joi.array().items(Joi.string().uuid()).optional(),
 });
 
 const updateStatusSchema = Joi.object({
