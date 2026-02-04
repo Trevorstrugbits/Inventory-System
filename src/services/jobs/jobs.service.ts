@@ -50,13 +50,9 @@ export class JobsService {
 
   /**
    * Create a new job
-   * Restriction: Company Admins only 
+   * Restriction: Now handled by middleware (Company Admin or Production Manager)
    */
   async createJob(data: CreateJobData, user: any) {
-    if (user.role !== UserRole.COMPANY) {
-        throw new AppError('Only company admins can create jobs.', 403);
-    }
-
     const companyId = user.companyId;
     const locationId = user.locationId;
 
@@ -207,22 +203,9 @@ export class JobsService {
 
     if (!job) return null;
 
-    if (user.role === UserRole.SUPERADMIN) {
-      // If jobMaterials exist, transform the array to an object keyed by materialId
-      if (job.jobMaterials) {
-        (job as any).jobMaterials = job.jobMaterials.reduce((acc: any, material: any) => {
-          if (material.materialId) { // Use materialId for the key
-            acc[material.materialId] = material;
-          }
-          return acc;
-        }, {});
-      }
-      return job;
-    }
-
-    // Company Admin & Employee Check
-    if (job.companyId !== user.companyId) {
-      throw new Error('Access denied: Job belongs to another company.');
+    // Object-level security check
+    if (user.role !== UserRole.SUPERADMIN && job.companyId !== user.companyId) {
+      throw new AppError('Access denied: Job belongs to another company.', 403);
     }
 
     // If jobMaterials exist, transform the array to an object keyed by materialId
@@ -326,7 +309,7 @@ export class JobsService {
 
   /**
    * Update Job Details
-   * Restriction: Company Admin only (own company)
+   * Restriction: Now handled by middleware (Company Admin or Production Manager)
    */
   async updateJob(id: string, data: UpdateJobData, user: any) {
     return prisma.$transaction(async (tx) => {
@@ -336,7 +319,8 @@ export class JobsService {
         if (!job) {
             throw new AppError('Job not found', 404);
         }
-        if (user.role !== UserRole.COMPANY || job.companyId !== user.companyId) {
+        // Object-level security check
+        if (user.role !== UserRole.SUPERADMIN && job.companyId !== user.companyId) {
             throw new AppError('Access denied.', 403);
         }
 
@@ -420,18 +404,15 @@ export class JobsService {
 
   /**
    * Update Job Status
-   * Restriction: Company Admin only (own company)
+   * Restriction: Now handled by middleware (Company Admin, Production Manager, or Installer)
    */
   async updateJobStatus(id: string, status: JobStatus, user: any) {
     const job = await prisma.job.findUnique({ where: { id } });
-    if (!job) throw new Error('Job not found');
+    if (!job) throw new AppError('Job not found', 404);
 
-    if (user.role !== UserRole.COMPANY) {
-        throw new Error('Only company admins can update job status.');
-    }
-    
-    if (job.companyId !== user.companyId) {
-        throw new Error('Access denied.');
+    // Object-level security check
+    if (user.role !== UserRole.SUPERADMIN && job.companyId !== user.companyId) {
+        throw new AppError('Access denied.', 403);
     }
 
     return prisma.job.update({
@@ -442,17 +423,14 @@ export class JobsService {
 
   /**
    * Archive a job
-   * Restriction: Company Admin only (own company)
+   * Restriction: Now handled by middleware (Company Admin or Production Manager)
    */
   async archiveJob(id: string, user: any) {
     const job = await prisma.job.findUnique({ where: { id } });
     if (!job) throw new AppError('Job not found', 404);
 
-    if (user.role !== UserRole.COMPANY) {
-      throw new AppError('Only company admins can archive jobs.', 403);
-    }
-
-    if (job.companyId !== user.companyId) {
+    // Object-level security check
+    if (user.role !== UserRole.SUPERADMIN && job.companyId !== user.companyId) {
       throw new AppError('Access denied.', 403);
     }
 
