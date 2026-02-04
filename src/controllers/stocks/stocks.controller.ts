@@ -17,14 +17,24 @@ class StocksController {
   getStockProjection = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const user = (req as any).user;
-      const { start_date, end_date } = req.query;
+      const { start_date, end_date, companyId } = req.query;
 
-      if (!user || !user.companyId) {
-        throw new AppError('Authentication required or user not associated with a company.', 401);
+      if (!user) {
+        throw new AppError('Authentication required.', 401);
+      }
+
+      const isSuperAdmin = user.role === 'SUPERADMIN';
+      const targetCompanyId = isSuperAdmin ? (companyId as string) : user.companyId;
+
+      if (!targetCompanyId) {
+        if (isSuperAdmin) {
+          return res.status(200).json(ApiResponse.success([]));
+        }
+        throw new AppError('User not associated with a company.', 401);
       }
 
       const projection = await this.stocksService.getStockProjection({
-        companyId: user.companyId,
+        companyId: targetCompanyId,
         startDate: new Date(start_date as string),
         endDate: new Date(end_date as string),
       });
@@ -41,15 +51,22 @@ class StocksController {
    */
   updateStock = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { variantId, inStock } = req.body;
+      const { variantId, inStock, companyId } = req.body;
       const user = (req as any).user;
 
-      if (!user || !user.companyId) {
-        throw new AppError('Authentication required or user not associated with a company.', 401);
+      if (!user) {
+        throw new AppError('Authentication required.', 401);
+      }
+
+      const isSuperAdmin = user.role === 'SUPERADMIN';
+      const targetCompanyId = isSuperAdmin ? (companyId || user.companyId) : user.companyId;
+
+      if (!targetCompanyId) {
+        throw new AppError('Company ID is required for stock updates.', 400);
       }
 
       const upsertedStock = await this.stocksService.updateStock({
-        user: { companyId: user.companyId }, // Pass only companyId as locationId is no longer needed
+        user: { companyId: targetCompanyId }, 
         variantId,
         inStock,
       });

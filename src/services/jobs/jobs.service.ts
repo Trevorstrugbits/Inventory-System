@@ -246,6 +246,19 @@ export class JobsService {
     if (user.role === UserRole.SUPERADMIN) {
       if (params.companyId) {
         where.companyId = params.companyId;
+      } else {
+        // Superadmin must provide a companyId, otherwise return empty list
+        return {
+          jobs: [],
+          meta: {
+            totalRecords: 0,
+            totalPages: 0,
+            currentPage: page,
+            limit: limit,
+            hasNextPage: false,
+            hasPrevPage: false
+          }
+        };
       }
     } else {
       // Force user's company
