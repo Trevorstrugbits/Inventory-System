@@ -206,7 +206,7 @@ export const requireCompanyAccess = (
     }
 
     // Get company ID from request params, body, or query
-    const targetCompanyId = req.params.companyId || req.body.companyId || req.query.companyId;
+    const targetCompanyId = req.params?.companyId || req.body?.companyId || req.query?.companyId;
 
     // If a target company is specified, check access
     if (targetCompanyId) {
@@ -249,7 +249,7 @@ export const requireLocationAccess = (
     }
 
     // Get location ID from request params or body
-    const targetLocationId = req.params.locationId || req.body.locationId;
+    const targetLocationId = req.params?.locationId || req.body?.locationId;
 
     if (!targetLocationId) {
       throw new AppError('Location ID is required', 400);
@@ -347,7 +347,7 @@ export const protectSuperAdmin = (
     // If the current user is not a superadmin, they cannot modify superadmin accounts
     if (user && user.role !== UserRole.SUPERADMIN) {
       // Check if trying to set role to SUPERADMIN
-      if (req.body.role === UserRole.SUPERADMIN) {
+      if (req.body?.role === UserRole.SUPERADMIN) {
         throw new AppError(
           'Cannot assign superadmin role. Only superadmins can create other superadmins.',
           403

@@ -54,7 +54,7 @@ export const authenticateToken = async (
     const decoded = jwt.verify(token, env.JWT_SECRET) as JwtPayload;
 
     // Explicitly check for companyId in the decoded payload
-    if (!decoded.companyId) {
+    if (!decoded || !decoded.companyId) {
       throw new AppError('Invalid token payload: companyId is missing.', 401);
     }
 

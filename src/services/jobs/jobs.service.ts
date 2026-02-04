@@ -58,7 +58,7 @@ export class JobsService {
     }
     const isSuperAdmin = user.role === UserRole.SUPERADMIN;
     // For job creation, we either need the user's companyId or one provided in the data (for superadmins)
-    const companyId = isSuperAdmin ? (data.companyId || user.companyId) : user.companyId;
+    const companyId = isSuperAdmin ? (data?.companyId || user.companyId) : user.companyId;
     const locationId = user.locationId; // Location might still be required for creation context
 
     if (!companyId) {
