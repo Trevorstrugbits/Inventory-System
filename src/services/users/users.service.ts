@@ -44,7 +44,7 @@ class UsersService {
         select?: any,
         isEmployeeOnly?: boolean,
     ): Promise<{
-        data: User[];
+        data: any[];
         pagination: {
             page: number;
             limit: number;
@@ -56,12 +56,19 @@ class UsersService {
         const limit = options.limit || 10;
         const skip = (page - 1) * limit;
 
+        // Build where clause
+        const where: any = { companyId: companyId.trim() };
+        
+        if (isEmployeeOnly) {
+            where.role = 'EMPLOYEE';
+        }
+
         // Get total count
-        const total = await db.count('user', { companyId, role: isEmployeeOnly ? 'EMPLOYEE' : 'COMPANY' });
+        const total = await db.prisma.user.count({ where });
 
         // Get paginated data
-        const data = await db.findMany<User>('user', {
-            where: { companyId, role: isEmployeeOnly ? 'EMPLOYEE' : 'COMPANY' },
+        const data = await db.prisma.user.findMany({
+            where,
             select,
             skip,
             take: limit,
@@ -162,20 +169,28 @@ class UsersService {
      * @returns Updated user
      */
     async updateUser(id: string, data: Partial<User>): Promise<User> {
-        // Prevent updating critical fields directly if needed, but RBAC handles permissions.
-        // We should probably prevent changing companyId or role via this route easily 
-        // without extra checks, but the controller handles Company Admin restriction.
-        // Company Admin shouldn't be able to change a user's company anyway.
-        const { companyId, role, ...allowedUpdates } = data;
+        // Prevent updating critical fields directly
+        const { companyId, role, password, ...allowedUpdates } = data as any;
 
-        // Actually user might want to update role (e.g. promote to manager?). 
-        // Requirement says "create, update and delete". 
-        // "create karty wakt just email and name jayega".
-        // For update, it didn't specify restrictions.
-        // But usually Company Admin can update their employees.
-        // Let's allow updating standard fields.
+        // Fetch target user to check their current role
+        const targetUser = await db.prisma.user.findUnique({ where: { id } });
+        
+        if (!targetUser) {
+            throw new Error('User not found');
+        }
 
-        return await db.update<User>('user', { id }, allowedUpdates);
+        if (targetUser.role === 'COMPANY') {
+            // Admin user's role and type are fixed
+            delete allowedUpdates.employeeType;
+        } else if (targetUser.role === 'EMPLOYEE') {
+            // For employees, we allow updating employeeType (PRODUCTION_MANAGER <-> INSTALLER)
+            // It will be in allowedUpdates already if passed in data
+        }
+
+        return await db.prisma.user.update({
+            where: { id },
+            data: allowedUpdates as any,
+        });
     }
 
     /**

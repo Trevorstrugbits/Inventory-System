@@ -80,11 +80,11 @@ class UsersController {
                     isActive: true,
                     companyId: true,
                     locationId: true,
+                    employeeType: true,
                     createdAt: true,
                     updatedAt: true
-                    // Explicitly exclude password
                 },
-                isEmployeeOnly ? true : false,
+                isEmployeeOnly === 'true',
             );
 
             // Transform pagination result from service to expected meta format
