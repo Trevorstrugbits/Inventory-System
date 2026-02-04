@@ -41,6 +41,11 @@ export const requireEmployeeType = (...allowedEmployeeTypes: EmployeeType[]) => 
         throw new AppError('Authentication required', 401);
       }
 
+      // Superadmins have access to everything
+      if (req.user.role === UserRole.SUPERADMIN) {
+        return next();
+      }
+
       // Ensure the user is an EMPLOYEE
       if (req.user.role !== UserRole.EMPLOYEE) {
         throw new AppError('Access denied. This action requires an employee role.', 403);
@@ -99,7 +104,8 @@ export const requireCompanyAdminOrSuperAdmin = requireRole(
  */
 export const requireEmployeeOrCompanyAdmin = requireRole(
   UserRole.EMPLOYEE,
-  UserRole.COMPANY
+  UserRole.COMPANY,
+  UserRole.SUPERADMIN
 );
 
 /**
@@ -116,6 +122,7 @@ export const requireCompanyAdminOrProductionManager = (
     }
 
     if (
+      req.user.role === UserRole.SUPERADMIN ||
       req.user.role === UserRole.COMPANY ||
       (req.user.role === UserRole.EMPLOYEE &&
         req.user.employeeType === EmployeeType.PRODUCTION_MANAGER)
@@ -123,7 +130,7 @@ export const requireCompanyAdminOrProductionManager = (
       return next();
     }
 
-    throw new AppError('Access denied. Required role: Company Admin or Production Manager', 403);
+    throw new AppError('Access denied. Required role: Superadmin, Company Admin or Production Manager', 403);
   } catch (error) {
     next(error);
   }
@@ -143,6 +150,7 @@ export const requireCompanyAdminOrProductionManagerOrInstaller = (
     }
 
     if (
+      req.user.role === UserRole.SUPERADMIN ||
       req.user.role === UserRole.COMPANY ||
       (req.user.role === UserRole.EMPLOYEE &&
         (req.user.employeeType === EmployeeType.PRODUCTION_MANAGER ||
@@ -151,7 +159,7 @@ export const requireCompanyAdminOrProductionManagerOrInstaller = (
       return next();
     }
 
-    throw new AppError('Access denied. Required role: Company Admin, Production Manager, or Installer', 403);
+    throw new AppError('Access denied. Required role: Superadmin, Company Admin, Production Manager, or Installer', 403);
   } catch (error) {
     next(error);
   }
