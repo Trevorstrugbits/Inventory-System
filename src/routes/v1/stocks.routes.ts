@@ -2,7 +2,11 @@ import express from 'express';
 import Joi from 'joi';
 import stocksController from '../../controllers/stocks/stocks.controller.js';
 import { authenticateToken } from '../../middleware/jwtAuth.js';
-import { requireCompanyAdminOrSuperAdmin, requireEmployeeOrCompanyAdmin } from '../../middleware/rbac.js';
+import { 
+  requireCompanyAdminOrSuperAdmin, 
+  requireEmployeeOrCompanyAdmin, 
+  requireCompanyAdminOrSuperAdminOrProductionManager 
+} from '../../middleware/rbac.js';
 import { validate } from '../../middleware/validation.middleware.js';
 
 const router = express.Router();
@@ -40,6 +44,6 @@ router.get('/projection', authenticateToken, requireEmployeeOrCompanyAdmin, vali
 router.post('/', authenticateToken, requireCompanyAdminOrSuperAdmin, validate(stockUpsertSchema), stocksController.updateStock);
 
 // Email manufacturer for restocking
-router.post('/email-manufacturer', authenticateToken, requireCompanyAdminOrSuperAdmin, validate(emailManufacturerSchema), stocksController.emailManufacturer);
+router.post('/email-manufacturer', authenticateToken, requireCompanyAdminOrSuperAdminOrProductionManager, validate(emailManufacturerSchema), stocksController.emailManufacturer);
 
 export default router;
