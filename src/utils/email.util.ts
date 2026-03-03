@@ -30,6 +30,7 @@ const sendEmail = async (to: string, subject: string, html: string, fromOverride
 import { companyInviteEmailTemplate } from './email-templates/company-invite.template.js';
 import { newUserCredentialsEmailTemplate } from './email-templates/new-user-credentials.template.js';
 import { forgotPasswordEmailTemplate } from './email-templates/forgot-password.template.js';
+import { manufacturerRestockEmailTemplate } from './email-templates/manufacturer-restock.template.js';
 
 interface SendInviteEmailParams {
   to: string;
@@ -73,4 +74,42 @@ export const sendForgotPasswordEmail = async (params: SendForgotPasswordEmailPar
   const subject = 'Reset Your Password - ResinWerks';
   const html = forgotPasswordEmailTemplate({ name, resetLink, expiresInMinutes });
   await sendEmail(to, subject, html);
+};
+
+interface SendManufacturerRestockEmailParams {
+  to: string;
+  from: string;
+  subject: string;
+  message: string;
+  items: Array<{
+    variantId: string;
+    variantName: string;
+    materialName: string;
+    quantityNeeded: number;
+  }>;
+}
+
+export const sendManufacturerRestockEmail = async (params: SendManufacturerRestockEmailParams): Promise<void> => {
+  const { to, from, subject, message, items } = params;
+  const html = manufacturerRestockEmailTemplate({ message, items });
+  
+  const msg = {
+    to,
+    from: env.SMTP_FROM,
+    replyTo: from,
+    subject,
+    text: message + '\n\n' + items.map(i => `${i.materialName} - ${i.variantName}: ${i.quantityNeeded}`).join('\n'),
+    html,
+  };
+
+  try {
+    await sgMail.send(msg);
+    console.log(`Manufacturer restock email sent successfully to ${to}`);
+  } catch (error: any) {
+    console.error(`Error sending manufacturer restock email to ${to}:`, error);
+    if (error.response) {
+      console.error(error.response.body);
+    }
+    throw new Error('Failed to send manufacturer restock email.');
+  }
 };

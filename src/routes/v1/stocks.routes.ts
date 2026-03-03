@@ -19,10 +19,27 @@ const stockUpsertSchema = Joi.object({
   companyId: Joi.string().uuid().optional(),
 });
 
+const emailManufacturerSchema = Joi.object({
+  fromEmail: Joi.string().email().required(),
+  subject: Joi.string().required(),
+  message: Joi.string().required(),
+  items: Joi.array().items(
+    Joi.object({
+      variantId: Joi.string().required(),
+      variantName: Joi.string().required(),
+      materialName: Joi.string().required(),
+      quantityNeeded: Joi.number().required(),
+    })
+  ).required(),
+});
+
 // Get stock projection for a date range
 router.get('/projection', authenticateToken, requireEmployeeOrCompanyAdmin, validate(projectionSchema, 'query'), stocksController.getStockProjection);
 
 // Upsert stock quantity for a user's location
 router.post('/', authenticateToken, requireCompanyAdminOrSuperAdmin, validate(stockUpsertSchema), stocksController.updateStock);
+
+// Email manufacturer for restocking
+router.post('/email-manufacturer', authenticateToken, requireCompanyAdminOrSuperAdmin, validate(emailManufacturerSchema), stocksController.emailManufacturer);
 
 export default router;

@@ -78,6 +78,27 @@ class StocksController {
       next(error);
     }
   }
+
+  /**
+   * Email Manufacturer
+   * Route: POST /stocks/email-manufacturer
+   */
+  emailManufacturer = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const { fromEmail, subject, message, items } = req.body;
+
+      const result = await this.stocksService.emailManufacturer({
+        fromEmail,
+        subject,
+        message,
+        items,
+      });
+
+      return res.status(200).json(ApiResponse.success(null, 'Email sent successfully'));
+    } catch (error: any) {
+      next(error);
+    }
+  }
 }
 
 export default new StocksController();

@@ -1,6 +1,8 @@
 import { prisma } from '../../db/db.service.js';
 import { AppError } from '../../middleware/error.middleware.js';
 import { UserRole } from '@prisma/client';
+import { sendManufacturerRestockEmail } from '../../utils/email.util.js';
+import { env } from '../../config/env.js';
 
 interface GetStockProjectionParams {
   companyId: string;
@@ -16,6 +18,18 @@ interface UpdateStockParams {
   };
   variantId: number;
   inStock: number;
+}
+
+interface EmailManufacturerParams {
+  fromEmail: string;
+  subject: string;
+  message: string;
+  items: Array<{
+    variantId: string;
+    variantName: string;
+    materialName: string;
+    quantityNeeded: number;
+  }>;
 }
 
 export class StocksService {
@@ -157,6 +171,26 @@ export class StocksService {
     });
 
     return upsertedOverride;
+  }
+
+  /**
+   * Email manufacturer for restocking
+   */
+  async emailManufacturer(params: EmailManufacturerParams) {
+    const { fromEmail, subject, message, items } = params;
+
+    // We use env.MANUFACTURER_EMAIL as the recipient (to) for now.
+    const toEmail = env.MANUFACTURER_EMAIL; 
+
+    await sendManufacturerRestockEmail({
+      to: toEmail,
+      from: fromEmail,
+      subject,
+      message,
+      items,
+    });
+
+    return { success: true };
   }
 }
 
