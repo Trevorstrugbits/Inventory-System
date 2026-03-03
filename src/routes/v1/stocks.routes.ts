@@ -29,7 +29,7 @@ const emailManufacturerSchema = Joi.object({
   message: Joi.string().required(),
   items: Joi.array().items(
     Joi.object({
-      variantId: Joi.string().required(),
+      variantId: Joi.alternatives().try(Joi.string(), Joi.number()).required(),
       variantName: Joi.string().required(),
       materialName: Joi.string().required(),
       quantityNeeded: Joi.number().required(),
