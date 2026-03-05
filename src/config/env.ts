@@ -21,7 +21,7 @@ const envSchema = z.object({
   FRONTEND_URL: z.string().url(),
   INVITE_EXPIRY_HOURS: z.coerce.number().default(72),
   BACKEND_URL: z.string().url(),
-  MANUFACTURER_EMAIL: z.string().email().default('hunainhyder@strugbitsglobal.com'),
+  MANUFACTURER_EMAIL: z.string(),
   // SendGrid Configuration
   SENDGRID_API_KEY: z.string(),
   // AWS Configuration
