@@ -170,21 +170,39 @@ class UsersService {
      */
     async updateUser(id: string, data: Partial<User>): Promise<User> {
         // Prevent updating critical fields directly
-        const { companyId, role, password, ...allowedUpdates } = data as any;
+        const { companyId, password, ...allowedUpdates } = data as any;
 
-        // Fetch target user to check their current role
-        const targetUser = await db.prisma.user.findUnique({ where: { id } });
+        // Fetch target user with their company to check their current role and primary admin status
+        const targetUser = await db.prisma.user.findUnique({ 
+            where: { id },
+            include: { company: true }
+        });
         
         if (!targetUser) {
             throw new Error('User not found');
         }
 
+        // If trying to change role
+        if (allowedUpdates.role && allowedUpdates.role !== targetUser.role) {
+            // Check if demoting the primary admin
+            if (targetUser.role === 'COMPANY' && 
+                targetUser.company?.companyAdminId === targetUser.id && 
+                allowedUpdates.role !== 'COMPANY') {
+                throw new Error('Cannot demote the primary company administrator. Transfer ownership first.');
+            }
+        }
+
         if (targetUser.role === 'COMPANY') {
-            // Admin user's role and type are fixed
-            delete allowedUpdates.employeeType;
+            // Admin user's role can be changed (unless it's the primary admin, checked above)
+            // But if they stay as COMPANY, their type is usually not relevant
         } else if (targetUser.role === 'EMPLOYEE') {
             // For employees, we allow updating employeeType (PRODUCTION_MANAGER <-> INSTALLER)
-            // It will be in allowedUpdates already if passed in data
+            // Or promoting to COMPANY
+        }
+
+        // If promoting to COMPANY, we might want to clear employeeType
+        if (allowedUpdates.role === 'COMPANY') {
+            allowedUpdates.employeeType = null;
         }
 
         return await db.prisma.user.update({
