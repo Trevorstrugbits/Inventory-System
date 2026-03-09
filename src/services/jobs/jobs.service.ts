@@ -51,29 +51,51 @@ interface UpdateJobData {
 export class JobsService {
 
   /**
-   * Helper to strip pricing data for production managers
+   * Helper to transform job data (transform jobMaterials to object and strip pricing)
    */
-  private stripPricing(job: any, user: any) {
+  private transformJob(job: any, user: any) {
+    if (!job) return null;
+
+    // 1. Transform jobMaterials array to object keyed by materialId
+    if (job.jobMaterials && Array.isArray(job.jobMaterials)) {
+      job.jobMaterials = job.jobMaterials.reduce((acc: any, material: any) => {
+        if (material.materialId) {
+          acc[material.materialId] = material;
+        }
+        return acc;
+      }, {});
+    }
+
+    // 2. Strip pricing data for production managers
     if (user.role === UserRole.EMPLOYEE && user.employeeType === EmployeeType.PRODUCTION_MANAGER) {
       delete job.jobCost;
       if (job.jobMaterials) {
-        // If it's an array
-        if (Array.isArray(job.jobMaterials)) {
-          job.jobMaterials.forEach((jm: any) => {
-            delete jm.costAtTime;
-            delete jm.additionalCost;
-          });
-        } 
-        // If it's the transformed object
-        else {
-          Object.values(job.jobMaterials).forEach((jm: any) => {
-            delete jm.costAtTime;
-            delete jm.additionalCost;
-          });
-        }
+        Object.values(job.jobMaterials).forEach((jm: any) => {
+          delete jm.costAtTime;
+          delete jm.additionalCost;
+        });
       }
     }
+
     return job;
+  }
+
+  /**
+   * Helper to parse date strings as UTC midnights to prevent timezone shifts
+   */
+  private parseDate(dateStr: string | Date | undefined): Date | undefined {
+    if (!dateStr) return undefined;
+    const date = new Date(dateStr);
+    // If it's a valid date and we want to ensure it's treated as UTC midnight
+    // stripping any time components that might cause shifting
+    if (isNaN(date.getTime())) return undefined;
+    
+    // Only apply UTC normalization if it's a string like 'YYYY-MM-DD'
+    if (typeof dateStr === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+        return new Date(dateStr + 'T00:00:00Z');
+    }
+    
+    return date;
   }
 
   /**
@@ -177,7 +199,7 @@ export class JobsService {
     }
 
     // 4. Create Job and JobMaterials in a transaction
-    const job = await prisma.$transaction(async (prisma) => {
+    const createdJob = await prisma.$transaction(async (prisma) => {
       const job = await prisma.job.create({
         data: {
           jobId: data.jobId,
@@ -189,16 +211,13 @@ export class JobsService {
           clientAddress: data.clientAddress,
           areaSqFt: data.areaSqFt,
           duration: data.duration,
-          date: new Date(data.date),
-          installDate: new Date(data.installDate),
+          date: this.parseDate(data.date)!,
+          installDate: this.parseDate(data.installDate)!,
           jobCost: data.jobCost || 0,
           status: JobStatus.PENDING,
           assignedEmployees: data.assignedEmployeeIds ? {
             connect: data.assignedEmployeeIds.map(id => ({ id }))
           } : undefined,
-        },
-        include: {
-          jobMaterials: true
         }
       });
 
@@ -227,11 +246,23 @@ export class JobsService {
       // Refetch to include the newly created materials
       return prisma.job.findUnique({
         where: { id: job.id },
-        include: { jobMaterials: true }
+        include: { 
+            jobMaterials: {
+                include: {
+                    variant: {
+                        select: {
+                            name: true,
+                            variantId: true, // The integer ID
+                            color: true,
+                        }
+                    }
+                }
+            }
+        }
       });
     });
 
-    return this.stripPricing(job, user);
+    return this.transformJob(createdJob, user);
   }
 
   /**
@@ -288,17 +319,7 @@ export class JobsService {
       }
     }
 
-    // If jobMaterials exist, transform the array to an object keyed by materialId
-    if (job.jobMaterials) {
-      (job as any).jobMaterials = job.jobMaterials.reduce((acc: any, material: any) => {
-        if (material.materialId) { // Use materialId for the key
-            acc[material.materialId] = material;
-          }
-        return acc;
-      }, {});
-    }
-
-    return this.stripPricing(job, user);
+    return this.transformJob(job, user);
   }
 
   /**
@@ -408,19 +429,7 @@ export class JobsService {
         include: includeClause
       });
 
-    // Transform jobMaterials array to object for each job and strip pricing
-    const transformedJobs = result.data.map((job: any) => {
-      if (job.jobMaterials) {
-        (job as any).jobMaterials = job.jobMaterials.reduce((acc: any, material: any) => {
-          if (material.materialId) { // Use materialId for the key
-            acc[material.materialId] = material;
-          }
-          return acc;
-        }, {});
-      }
-      return this.stripPricing(job, user);
-    });
-
+    const transformedJobs = result.data.map((job: any) => this.transformJob(job, user));
 
     return {
       jobs: transformedJobs,
@@ -473,8 +482,8 @@ export class JobsService {
 
         const scalarUpdateData: any = {
             ...jobData,
-            date: jobData.date ? new Date(jobData.date) : undefined,
-            installDate: jobData.installDate ? new Date(jobData.installDate) : undefined,
+            date: this.parseDate(jobData.date),
+            installDate: this.parseDate(jobData.installDate),
             assignedEmployees: assignedEmployeeIds ? {
               set: assignedEmployeeIds.map(id => ({ id }))
             } : undefined,
@@ -538,11 +547,23 @@ export class JobsService {
         // 4. Return the fully updated job with the new materials
         return tx.job.findUnique({
             where: { id },
-            include: { jobMaterials: true }
+            include: { 
+                jobMaterials: {
+                    include: {
+                        variant: {
+                            select: {
+                                name: true,
+                                variantId: true, // The integer ID
+                                color: true,
+                            }
+                        }
+                    }
+                } 
+            }
         });
     });
 
-    return this.stripPricing(updatedJob, user);
+    return this.transformJob(updatedJob, user);
   }
 
   /**
@@ -561,10 +582,13 @@ export class JobsService {
         throw new AppError('Access denied.', 403);
     }
 
-    return prisma.job.update({
+    const updatedJob = await prisma.job.update({
       where: { id },
-      data: { status }
+      data: { status },
+      include: { jobMaterials: true }
     });
+
+    return this.transformJob(updatedJob, user);
   }
 
   /**
@@ -583,10 +607,13 @@ export class JobsService {
       throw new AppError('Access denied.', 403);
     }
 
-    return prisma.job.update({
+    const updatedJob = await prisma.job.update({
       where: { id },
-      data: { status: JobStatus.ARCHIVED }
+      data: { status: JobStatus.ARCHIVED },
+      include: { jobMaterials: true }
     });
+
+    return this.transformJob(updatedJob, user);
   }
 
   /**
