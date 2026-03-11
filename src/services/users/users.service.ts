@@ -58,7 +58,7 @@ class UsersService {
 
         // Build where clause
         const where: any = { companyId: companyId.trim() };
-        
+
         if (isEmployeeOnly) {
             where.role = 'EMPLOYEE';
         }
@@ -89,7 +89,7 @@ class UsersService {
 
     /**
      * Create a new user
-     * @param data User data (email, name, companyId, locationId?)
+     * @param data User data (email, name, companyId, locationId?, customMessage?)
      * @returns Created user
      */
     async createUser(data: {
@@ -97,6 +97,7 @@ class UsersService {
         name: string;
         companyId: string;
         locationId?: string;
+        customMessage?: string;
     }): Promise<User> {
         // Check if email already exists (outside transaction for faster check)
         const existingUser = await db.findFirst<User>('user', { email: data.email });
@@ -147,9 +148,10 @@ class UsersService {
             await sendNewUserCredentialsEmail({
                 to: newUser.email,
                 name: `${newUser.firstName} ${newUser.lastName}`,
-                companyName: company?.name || 'ResinWerks',
+                companyName: company?.name || 'Resinwerks',
                 loginUrl: process.env.FRONTEND_URL || 'http://localhost:3000/login',
-                password: password
+                password: password,
+                customMessage: data.customMessage
             });
 
             return newUser;
@@ -173,11 +175,11 @@ class UsersService {
         const { companyId, password, ...allowedUpdates } = data as any;
 
         // Fetch target user with their company to check their current role and primary admin status
-        const targetUser = await db.prisma.user.findUnique({ 
+        const targetUser = await db.prisma.user.findUnique({
             where: { id },
             include: { company: true }
         });
-        
+
         if (!targetUser) {
             throw new Error('User not found');
         }
@@ -185,8 +187,8 @@ class UsersService {
         // If trying to change role
         if (allowedUpdates.role && allowedUpdates.role !== targetUser.role) {
             // Check if demoting the primary admin
-            if (targetUser.role === 'COMPANY' && 
-                targetUser.company?.companyAdminId === targetUser.id && 
+            if (targetUser.role === 'COMPANY' &&
+                targetUser.company?.companyAdminId === targetUser.id &&
                 allowedUpdates.role !== 'COMPANY') {
                 throw new Error('Cannot demote the primary company administrator. Transfer ownership first.');
             }

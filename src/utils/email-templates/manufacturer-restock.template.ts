@@ -97,7 +97,7 @@ export const manufacturerRestockEmailTemplate = (params: ManufacturerRestockEmai
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">🏗️ ResinWerks</div>
+          <div class="logo">🏗️ Resinwerks</div>
         </div>
 
         <h1>Restock Request</h1>
@@ -122,10 +122,10 @@ export const manufacturerRestockEmailTemplate = (params: ManufacturerRestockEmai
 
         <div class="footer">
           <p>
-            This is an automated restock request from the ResinWerks platform.
+            This is an automated restock request from the Resinwerks platform.
           </p>
           <p>
-            © ${new Date().getFullYear()} ResinWerks. All rights reserved.
+            © ${new Date().getFullYear()} Resinwerks. All rights reserved.
           </p>
         </div>
       </div>

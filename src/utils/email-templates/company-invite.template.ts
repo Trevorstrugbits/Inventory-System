@@ -26,14 +26,14 @@ export const companyInviteEmailTemplate = (params: CompanyInviteEmailParams): st
   } catch (error) {
     expirationDate = `in ${expiresInHours} hours`;
   }
-  
+
   return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Invitation to Join ${companyName} on ResinWerks</title>
+      <title>Invitation to Join ${companyName} on Resinwerks</title>
       <style>
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -54,11 +54,9 @@ export const companyInviteEmailTemplate = (params: CompanyInviteEmailParams): st
           text-align: center;
           margin-bottom: 30px;
         }
-        .logo {
-          font-size: 32px;
-          font-weight: bold;
-          color: #2563eb;
-          margin-bottom: 10px;
+        .logo-img {
+          max-width: 200px;
+          height: auto;
         }
         h1 {
           color: #1f2937;
@@ -109,16 +107,16 @@ export const companyInviteEmailTemplate = (params: CompanyInviteEmailParams): st
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">🏗️ ResinWerks</div>
+          <img src="https://portal.masterinstaller.pro/_next/image?url=%2Flogo.png&w=256&q=75" alt="Resinwerks Logo" class="logo-img">
         </div>
 
-        <h1>You're Invited to Join ${companyName} on ResinWerks!</h1>
+        <h1>You're Invited to Join ${companyName} on Resinwerks!</h1>
 
         <p>Hello,</p>
 
         <p>
-          You've been invited to join <strong>${companyName}</strong> on the ResinWerks platform 
-          as a company administrator. ResinWerks is a comprehensive inventory and job management 
+          You've been invited to join <strong>${companyName}</strong> on the Resinwerks platform 
+          as a company administrator. Resinwerks is a comprehensive inventory and job management 
           system designed specifically for resin flooring businesses.
         </p>
 
@@ -158,10 +156,10 @@ export const companyInviteEmailTemplate = (params: CompanyInviteEmailParams): st
 
         <div class="footer">
           <p>
-            This is an automated email from ResinWerks. Please do not reply to this email.
+            This is an automated email from Resinwerks. Please do not reply to this email.
           </p>
           <p>
-            © ${new Date().getFullYear()} ResinWerks. All rights reserved.
+            © ${new Date().getFullYear()} Resinwerks. All rights reserved.
           </p>
         </div>
       </div>

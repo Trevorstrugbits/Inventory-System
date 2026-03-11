@@ -105,11 +105,11 @@ class UsersController {
         }
     }
     /**
-     * Create user (Company Admin only - Restricted via Route Middleware)
+     * Create user (Company Admin or Superadmin)
      */
     createUser = async (req: Request, res: Response, next: NextFunction) => {
         try {
-            const { email, name, locationId } = req.body;
+            const { email, name, locationId, customMessage, companyId: targetCompanyId } = req.body;
             const currentUser = (req as any).user;
 
             // Validation
@@ -117,14 +117,24 @@ class UsersController {
                 throw new AppError('Email and Name are required', 400);
             }
 
-            // Get company ID from current user (Company Admin)
-            const companyId = currentUser.companyId;
+            // Determine company ID
+            let companyId = currentUser.companyId;
+
+            // If superadmin, they can specify a companyId. If not provided, it might be null for them.
+            if (currentUser.role === UserRole.SUPERADMIN && targetCompanyId) {
+                companyId = targetCompanyId;
+            }
+
+            if (!companyId) {
+                throw new AppError('Company ID is required', 400);
+            }
 
             const user = await this.usersService.createUser({
                 email,
                 name,
                 companyId,
-                locationId
+                locationId,
+                customMessage
             });
 
             // Remove password from response

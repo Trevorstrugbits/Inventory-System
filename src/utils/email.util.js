@@ -9,8 +9,8 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 var __generator = (this && this.__generator) || function (thisArg, body) {
-    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
-    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    var _ = { label: 0, sent: function () { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g = Object.create((typeof Iterator === "function" ? Iterator : Object).prototype);
+    return g.next = verb(0), g["throw"] = verb(1), g["return"] = verb(2), typeof Symbol === "function" && (g[Symbol.iterator] = function () { return this; }), g;
     function verb(n) { return function (v) { return step([n, v]); }; }
     function step(op) {
         if (f) throw new TypeError("Generator is already executing.");
@@ -53,54 +53,58 @@ var createTransporter = function () {
         },
     });
 };
-var sendInviteEmail = function (params) { return __awaiter(void 0, void 0, void 0, function () {
-    var to, inviteLink, expiresAt, transporter, mailOptions, info, error_1;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                to = params.to, inviteLink = params.inviteLink, expiresAt = params.expiresAt;
-                transporter = createTransporter();
-                mailOptions = {
-                    from: "\"".concat(process.env.APP_NAME || 'ResinWerks', "\" <").concat(process.env.SMTP_USER, ">"),
-                    to: to,
-                    subject: 'You\'re Invited to Join ResinWerks',
-                    html: (0, company_invite_template_1.companyInviteEmailTemplate)({ inviteLink: inviteLink, expiresAt: expiresAt }),
-                };
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 3, , 4]);
-                return [4 /*yield*/, transporter.sendMail(mailOptions)];
-            case 2:
-                info = _a.sent();
-                console.log('Email sent successfully:', info.messageId);
-                return [3 /*break*/, 4];
-            case 3:
-                error_1 = _a.sent();
-                console.error('Error sending email:', error_1);
-                throw new Error('Failed to send invitation email');
-            case 4: return [2 /*return*/];
-        }
+var sendInviteEmail = function (params) {
+    return __awaiter(void 0, void 0, void 0, function () {
+        var to, inviteLink, expiresAt, transporter, mailOptions, info, error_1;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    to = params.to, inviteLink = params.inviteLink, expiresAt = params.expiresAt;
+                    transporter = createTransporter();
+                    mailOptions = {
+                        from: "\"".concat(process.env.APP_NAME || 'Resinwerks', "\" <").concat(process.env.SMTP_USER, ">"),
+                        to: to,
+                        subject: 'You\'re Invited to Join Resinwerks',
+                        html: (0, company_invite_template_1.companyInviteEmailTemplate)({ inviteLink: inviteLink, expiresAt: expiresAt }),
+                    };
+                    _a.label = 1;
+                case 1:
+                    _a.trys.push([1, 3, , 4]);
+                    return [4 /*yield*/, transporter.sendMail(mailOptions)];
+                case 2:
+                    info = _a.sent();
+                    console.log('Email sent successfully:', info.messageId);
+                    return [3 /*break*/, 4];
+                case 3:
+                    error_1 = _a.sent();
+                    console.error('Error sending email:', error_1);
+                    throw new Error('Failed to send invitation email');
+                case 4: return [2 /*return*/];
+            }
+        });
     });
-}); };
+};
 exports.sendInviteEmail = sendInviteEmail;
-var testEmailConfig = function () { return __awaiter(void 0, void 0, void 0, function () {
-    var transporter, error_2;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                _a.trys.push([0, 2, , 3]);
-                transporter = createTransporter();
-                return [4 /*yield*/, transporter.verify()];
-            case 1:
-                _a.sent();
-                console.log('Email configuration is valid');
-                return [2 /*return*/, true];
-            case 2:
-                error_2 = _a.sent();
-                console.error('Email configuration error:', error_2);
-                return [2 /*return*/, false];
-            case 3: return [2 /*return*/];
-        }
+var testEmailConfig = function () {
+    return __awaiter(void 0, void 0, void 0, function () {
+        var transporter, error_2;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    _a.trys.push([0, 2, , 3]);
+                    transporter = createTransporter();
+                    return [4 /*yield*/, transporter.verify()];
+                case 1:
+                    _a.sent();
+                    console.log('Email configuration is valid');
+                    return [2 /*return*/, true];
+                case 2:
+                    error_2 = _a.sent();
+                    console.error('Email configuration error:', error_2);
+                    return [2 /*return*/, false];
+                case 3: return [2 /*return*/];
+            }
+        });
     });
-}); };
+};
 exports.testEmailConfig = testEmailConfig;

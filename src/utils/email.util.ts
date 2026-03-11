@@ -42,7 +42,7 @@ interface SendInviteEmailParams {
 
 export const sendInviteEmail = async (params: SendInviteEmailParams): Promise<void> => {
   const { to, inviteLink, companyName, expiresAt, expiresInHours } = params;
-  const subject = `You're Invited to Join ${companyName} on ResinWerks`;
+  const subject = `You're Invited to Join ${companyName} on Resinwerks`;
   const html = companyInviteEmailTemplate({ inviteLink, companyName, expiresAt, expiresInHours });
   await sendEmail(to, subject, html);
 };
@@ -53,12 +53,13 @@ interface SendNewUserCredentialsEmailParams {
   companyName: string;
   loginUrl: string;
   password: string;
+  customMessage?: string;
 }
 
 export const sendNewUserCredentialsEmail = async (params: SendNewUserCredentialsEmailParams): Promise<void> => {
-  const { to, name, companyName, loginUrl, password } = params;
+  const { to, name, companyName, loginUrl, password, customMessage } = params;
   const subject = `Welcome to ${companyName} - Your Login Credentials`;
-  const html = newUserCredentialsEmailTemplate({ name, companyName, loginUrl, email: to, password });
+  const html = newUserCredentialsEmailTemplate({ name, companyName, loginUrl, email: to, password, customMessage });
   await sendEmail(to, subject, html);
 };
 
@@ -71,7 +72,7 @@ interface SendForgotPasswordEmailParams {
 
 export const sendForgotPasswordEmail = async (params: SendForgotPasswordEmailParams): Promise<void> => {
   const { to, name, resetLink, expiresInMinutes } = params;
-  const subject = 'Reset Your Password - ResinWerks';
+  const subject = 'Reset Your Password - Resinwerks';
   const html = forgotPasswordEmailTemplate({ name, resetLink, expiresInMinutes });
   await sendEmail(to, subject, html);
 };
@@ -92,7 +93,7 @@ interface SendManufacturerRestockEmailParams {
 export const sendManufacturerRestockEmail = async (params: SendManufacturerRestockEmailParams): Promise<void> => {
   const { to, from, subject, message, items } = params;
   const html = manufacturerRestockEmailTemplate({ message, items });
-  
+
   const msg = {
     to,
     from: env.SMTP_FROM,

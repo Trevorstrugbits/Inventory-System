@@ -1,19 +1,19 @@
 interface ForgotPasswordEmailParams {
-    name: string;
-    resetLink: string;
-    expiresInMinutes: number;
+  name: string;
+  resetLink: string;
+  expiresInMinutes: number;
 }
 
 export const forgotPasswordEmailTemplate = (params: ForgotPasswordEmailParams): string => {
-    const { name, resetLink, expiresInMinutes } = params;
+  const { name, resetLink, expiresInMinutes } = params;
 
-    return `
+  return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Reset Your Password - ResinWerks</title>
+      <title>Reset Your Password - Resinwerks</title>
       <style>
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -34,11 +34,9 @@ export const forgotPasswordEmailTemplate = (params: ForgotPasswordEmailParams): 
           text-align: center;
           margin-bottom: 30px;
         }
-        .logo {
-          font-size: 32px;
-          font-weight: bold;
-          color: #2563eb;
-          margin-bottom: 10px;
+        .logo-img {
+          max-width: 200px;
+          height: auto;
         }
         h1 {
           color: #1f2937;
@@ -90,14 +88,14 @@ export const forgotPasswordEmailTemplate = (params: ForgotPasswordEmailParams): 
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">🔐 ResinWerks</div>
+          <img src="https://porResinwerksinstaller.pro/_next/image?url=%2Flogo.png&w=256&q=75" alt="ResinWerks Logo" class="logo-img">
           <h1>Reset Your Password</h1>
         </div>
         
         <p>Hi ${name},</p>
         
         <p>
-          We received a request to reset your password for your ResinWerks account. 
+          We received a request to reset your password for your Resinwerks account. 
           Click the button below to create a new password:
         </p>
         
@@ -121,7 +119,7 @@ export const forgotPasswordEmailTemplate = (params: ForgotPasswordEmailParams): 
         </div>
         
         <div class="footer">
-          <p>Best regards,<br>The ResinWerks Team</p>
+          <p>Best regards,<br>The Resinwerks Team</p>
           <p style="font-size: 12px; color: #9ca3af;">
             This is an automated message, please do not reply to this email.
           </p>

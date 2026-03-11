@@ -1,21 +1,22 @@
 interface NewUserCredentialsEmailParams {
-    name: string;
-    companyName: string;
-    loginUrl: string;
-    email: string;
-    password: string;
+  name: string;
+  companyName: string;
+  loginUrl: string;
+  email: string;
+  password: string;
+  customMessage?: string;
 }
 
 export const newUserCredentialsEmailTemplate = (params: NewUserCredentialsEmailParams): string => {
-    const { name, companyName, loginUrl, email, password } = params;
+  const { name, companyName, loginUrl, email, password, customMessage } = params;
 
-    return `
+  return `
     <!DOCTYPE html>
     <html lang="en">
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Welcome to ${companyName} on ResinWerks</title>
+      <title>Welcome to ${companyName} on Resinwerks</title>
       <style>
         body {
           font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -36,11 +37,9 @@ export const newUserCredentialsEmailTemplate = (params: NewUserCredentialsEmailP
           text-align: center;
           margin-bottom: 30px;
         }
-        .logo {
-          font-size: 32px;
-          font-weight: bold;
-          color: #2563eb;
-          margin-bottom: 10px;
+        .logo-img {
+          max-width: 200px;
+          height: auto;
         }
         h1 {
           color: #1f2937;
@@ -50,6 +49,14 @@ export const newUserCredentialsEmailTemplate = (params: NewUserCredentialsEmailP
         p {
           color: #4b5563;
           margin-bottom: 15px;
+        }
+        .custom-message {
+          background-color: #eff6ff;
+          border-left: 4px solid #3b82f6;
+          padding: 15px;
+          margin: 20px 0;
+          font-style: italic;
+          color: #1e40af;
         }
         .credentials-box {
           background-color: #f3f4f6;
@@ -103,15 +110,17 @@ export const newUserCredentialsEmailTemplate = (params: NewUserCredentialsEmailP
     <body>
       <div class="container">
         <div class="header">
-          <div class="logo">🏗️ ResinWerks</div>
+          <img src="https://portal.masterinstaller.pro/_next/image?url=%2Flogo.png&w=256&q=75" alt="Resinwerks Logo" class="logo-img">
         </div>
 
         <h1>Welcome to ${companyName}!</h1>
 
         <p>Hello ${name},</p>
 
+        ${customMessage ? `<div class="custom-message">${customMessage}</div>` : ''}
+
         <p>
-          An account has been created for you to join <strong>${companyName}</strong> on the ResinWerks platform.
+          An account has been created for you to join <strong>${companyName}</strong> on the Resinwerks platform.
         </p>
 
         <p>Here are your login credentials:</p>
@@ -132,15 +141,15 @@ export const newUserCredentialsEmailTemplate = (params: NewUserCredentialsEmailP
         </p>
 
         <div style="text-align: center;">
-          <a href="${loginUrl}" class="cta-button">Login to ResinWerks</a>
+          <a href="${loginUrl}" class="cta-button">Login to Resinwerks</a>
         </div>
 
         <div class="footer">
           <p>
-            This is an automated email from ResinWerks. Please do not reply to this email.
+            This is an automated email from Resinwerks. Please do not reply to this email.
           </p>
           <p>
-            © ${new Date().getFullYear()} ResinWerks. All rights reserved.
+            © ${new Date().getFullYear()} Resinwerks. All rights reserved.
           </p>
         </div>
       </div>
