@@ -38,16 +38,19 @@ class MaterialVariantController {
    */
   getAllVariants = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      const { isActive, type, page, limit } = req.query;
+      const { isActive, type, types, page, limit } = req.query;
       const search = req.query.search || req.query.q || req.query.query;
 
       const status = isActive === 'true' ? 'active' : 'inactive';
+
+      // Support both singular 'type' and plural 'types'
+      const activeTypes = types || type;
 
       const result = await this.materialVariantService.getAllMaterialVariants({
         includeInactive: isActive === 'true',
         status: status as string | undefined,
         search: search as string | undefined,
-        types: type as string[] | undefined,
+        types: activeTypes as string | string[] | undefined,
         page: page ? Number(page) : 1,
         limit: limit ? Number(limit) : 10
       }, (req as any).user);
