@@ -1,6 +1,6 @@
 import { prisma } from '../../db/db.service.js';
 import { AppError } from '../../middleware/error.middleware.js';
-import { UserRole } from '@prisma/client';
+import { UserRole, JobStatus } from '@prisma/client';
 import { sendManufacturerRestockEmail } from '../../utils/email.util.js';
 import { env } from '../../config/env.js';
 
@@ -39,10 +39,11 @@ export class StocksService {
    * Get stock projection for a date range
    */
   async getStockProjection({ companyId, startDate, endDate, page = 1, limit = 10 }: GetStockProjectionParams) {
-    // 1. Find all jobs in the date range for the company
+    // 1. Find all jobs in the date range for the company with status PENDING
     const jobs = await prisma.job.findMany({
       where: {
         companyId,
+        status: JobStatus.PENDING,
         installDate: {
           gte: startDate,
           lte: endDate,
