@@ -1,5 +1,6 @@
 import db from '../../db/db.service.js';
 import { User } from '@prisma/client';
+import { getPreSignedUrl } from '../../utils/s3.util.js';
 
 class UsersService {
     /**
@@ -18,7 +19,16 @@ class UsersService {
      * @returns Promise of user or null if not found
      */
     async getUserById(id: string, select?: any): Promise<User | null> {
-        return await db.findOne<User>('user', { id }, select);
+        const user = await db.findOne<User>('user', { id }, select);
+
+        if (user && user.profileImage) {
+            const key = user.profileImage.split('/').pop();
+            if (key) {
+                user.profileImage = await getPreSignedUrl(key);
+            }
+        }
+
+        return user;
     }
 
     /**
@@ -75,9 +85,26 @@ class UsersService {
             orderBy: { createdAt: 'desc' }
         });
 
+        // Generate pre-signed URLs for profile images
+        const usersWithSignedUrls = await Promise.all(
+            data.map(async (user: any) => {
+                if (user.profileImage) {
+                    const key = user.profileImage.split('/').pop();
+                    if (key) {
+                        try {
+                            user.profileImage = await getPreSignedUrl(key);
+                        } catch (error) {
+                            console.error(`Failed to generate signed URL for user ${user.id}:`, error);
+                        }
+                    }
+                }
+                return user;
+            })
+        );
+
 
         return {
-            data,
+            data: usersWithSignedUrls,
             pagination: {
                 page,
                 limit,
